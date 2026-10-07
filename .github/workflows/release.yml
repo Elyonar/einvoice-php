@@ -1,0 +1,84 @@
+name: Release
+
+# Packagist reads the version from git tags: this workflow tags `v<version>` once CI passes on main,
+# and Packagist's GitHub hook picks the tag up (PUBLISHING.md). Nothing is uploaded from here.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/Version.php'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read the version
+        id: pkg
+        run: echo "version=$(sed -n "s/.*VERSION = '\(.*\)';/\1/p" src/Version.php | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if the tag already exists
+        id: tag_check
+        run: |
+          if git rev-parse "v${{ steps.pkg.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip if already released
+        if: steps.tag_check.outputs.exists == 'true'
+        run: echo "Tag v${{ steps.pkg.outputs.version }} already exists. Skipping release."
+
+      - uses: shivammathur/setup-php@v2
+        if: steps.tag_check.outputs.exists == 'false'
+        with:
+          php-version: "8.3"
+          tools: composer:v2
+
+      - uses: actions/setup-node@v4
+        if: steps.tag_check.outputs.exists == 'false'
+        with:
+          node-version: 22
+
+      - name: Install
+        if: steps.tag_check.outputs.exists == 'false'
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint, test, sync-check, guides-check
+        if: steps.tag_check.outputs.exists == 'false'
+        run: make lint test sync-check guides-check
+
+      - name: Create git tag
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.pkg.outputs.version }}" -m "Release v${{ steps.pkg.outputs.version }}"
+          git push origin "v${{ steps.pkg.outputs.version }}"
+
+      - name: Extract changelog for this version
+        if: steps.tag_check.outputs.exists == 'false'
+        id: changelog
+        run: |
+          VERSION=${{ steps.pkg.outputs.version }}
+          awk "/^## ${VERSION}/,/^## [0-9]/" CHANGELOG.md | sed '$d' > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "Release v${VERSION}" > release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        if: steps.tag_check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.pkg.outputs.version }}
+          body_path: release_notes.md
+          generate_release_notes: true

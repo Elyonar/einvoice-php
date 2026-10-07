@@ -1,0 +1,10 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+        - examples
+        - scripts
+    excludePaths:
+        - scripts/openapi-api-key-ops.json
+    treatPhpDocTypesAsCertain: false

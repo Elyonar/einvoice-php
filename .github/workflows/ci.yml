@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ["8.1", "8.2", "8.3", "8.4"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Install
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: vendor/bin/phpunit --coverage-text --coverage-clover coverage.xml
+
+      - name: Coverage is at least 80 %
+        run: |
+          php -r '
+            $xml = simplexml_load_file("coverage.xml");
+            $m = $xml->project->metrics;
+            $covered = (int) $m["coveredstatements"]; $total = (int) $m["statements"];
+            $pct = $total ? 100 * $covered / $total : 0;
+            printf("statements: %d/%d (%.1f%%)\n", $covered, $total, $pct);
+            exit($pct >= 80 ? 0 : 1);
+          '
+
+      - name: Guides are current
+        run: make guides-check
+
+  sync-check:
+    # The models, snapshot and vectors must be what the pinned einvoice-js commit generates.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Snapshot, vectors and generated models match einvoice-js
+        run: make sync-check

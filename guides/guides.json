@@ -1,0 +1,355 @@
+{
+  "sdkVersion": "0.1.0",
+  "generatedFrom": "0000000",
+  "install": "composer require useyona/einvoice-php",
+  "quickStart": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_\n\n$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
+  "recipes": [
+    {
+      "id": "first-invoice",
+      "title": "Your first invoice",
+      "summary": "Create a buyer and an item, draft an invoice, finalise it, submit it to the tax authority, follow its status and download the PDF and the QR payload.",
+      "steps": [
+        {
+          "id": "client",
+          "title": "Create the client",
+          "text": "Pass only your API key. An sk_test_ key works in sandbox and an sk_live_ key in live, on the same host.",
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Exception\\ConflictException;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\n$ref = bin2hex(random_bytes(4));",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "create-buyer",
+          "title": "Create a buyer",
+          "text": "A buyer is the party you invoice. A B2B buyer carries its tax id (TIN), which the tax authority checks on submission. A TIN is unique per organisation: on 409 RES002, reuse the buyer you already have.",
+          "sdk": "$taxId = '33875194-0001';\n$findOrCreateBuyer = function () use ($yona, $ref, $taxId): array {\n    try {\n        return $yona->buyers->create([\n            'name' => \"Acme Nigeria Ltd {$ref}\",\n            'partyType' => 'company',\n            'taxId' => $taxId,\n            'email' => \"accounts.{$ref}@example.com\",\n            'address' => ['line1' => '1 Marina', 'city' => 'Lagos', 'country' => 'NG'],\n        ]);\n    } catch (ConflictException $err) {\n        if ($err->errorCode !== 'RES002') {\n            throw $err;\n        }\n        $found = $yona->buyers->list(['search' => $taxId, 'limit' => 1]);\n        if ($found->data === []) {\n            throw $err;\n        }\n\n        return $found->data[0];\n    }\n};\n$buyer = $findOrCreateBuyer();\necho 'buyer ', $buyer['id'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"string\"\n}'",
+          "operationId": "createBuyer"
+        },
+        {
+          "id": "find-hs-code",
+          "title": "Find an HS code",
+          "text": "Goods carry an HS code. Search the reference list for one that fits your product.",
+          "sdk": "$hsCodes = $yona->reference->listHsCodes(['limit' => 1]);\n$hsnCode = $hsCodes->data[0]['code'] ?? '8471.30';",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/hsn-codes\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listHsCodes"
+        },
+        {
+          "id": "create-item",
+          "title": "Create an item",
+          "text": "Save what you sell once and reuse it on every invoice. Amounts are integer minor units (kobo for NGN), sent as strings.",
+          "sdk": "$item = $yona->items->create([\n    'name' => \"Laptop {$ref}\",\n    'itemType' => 'goods',\n    'hsnCode' => $hsnCode,\n    'productCategory' => 'Machinery',\n    'unitCode' => 'EA',\n    'unitPriceMinor' => '150000000',\n    'currency' => 'NGN',\n    'taxCategory' => 'STANDARD_VAT',\n    'sku' => \"LAPTOP-{$ref}\",\n]);\necho 'item ', $item['id'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/items\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"Consulting hour\",\n  \"itemType\": \"service\",\n  \"productCategory\": \"Machinery\",\n  \"unitCode\": \"EA\",\n  \"unitPriceMinor\": \"150050\",\n  \"currency\": \"NGN\",\n  \"taxCategory\": \"STANDARD_VAT\"\n}'",
+          "operationId": "createItem"
+        },
+        {
+          "id": "create-invoice",
+          "title": "Draft the invoice",
+          "text": "A draft can be edited freely. The SDK sends an Idempotency-Key, so a retried create is never charged twice.",
+          "sdk": "$draft = $yona->invoices->create([\n    'invoiceKind' => 'B2B',\n    'invoiceDate' => date('Y-m-d'),\n    'currency' => 'NGN',\n    'buyerId' => $buyer['id'],\n    'lineItems' => [['itemId' => $item['id'], 'quantity' => 2]],\n]);\necho 'draft ', $draft['invoiceNumber'], ' ', $draft['totals']['payableMinor'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/invoices\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"invoiceKind\": \"B2B\",\n  \"invoiceDate\": \"2026-09-30\",\n  \"currency\": \"NGN\",\n  \"lineItems\": [\n    {\n      \"quantity\": \"2.5\"\n    }\n  ]\n}'",
+          "operationId": "createInvoice"
+        },
+        {
+          "id": "finalise",
+          "title": "Finalise it",
+          "text": "Finalising freezes the seller and buyer onto the invoice and runs the jurisdiction's checks.",
+          "sdk": "$finalised = $yona->invoices->finalise($draft['id']);\necho 'finalised ', $finalised['status'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/invoices/{id}/finalise\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "finaliseInvoice"
+        },
+        {
+          "id": "submit",
+          "title": "Submit it to the tax authority",
+          "text": "Submission is asynchronous: the answer is the queued submission. Webhooks tell you when it settles.",
+          "sdk": "$submitted = $yona->submissions->submit($draft['id']);\necho 'submitted ', $submitted['invoice']['status'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/invoices/{id}/submit\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\"",
+          "operationId": "submitInvoice"
+        },
+        {
+          "id": "wait",
+          "title": "Wait for the outcome",
+          "text": "Poll the status as last recorded (or listen for invoice.accepted / invoice.rejected webhooks).",
+          "sdk": "$settled = ['signed', 'transmitted', 'accepted', 'rejected', 'failed'];\n$status = $yona->submissions->getStatus($draft['id']);\nfor ($i = 0; $i < 45 && !in_array($status['status'], $settled, true); ++$i) {\n    sleep(2);\n    $status = $yona->submissions->getStatus($draft['id']);\n}\necho 'status ', $status['status'], ' ', $status['authorityReference'] ?? '', \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}/status\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getInvoiceStatus"
+        },
+        {
+          "id": "query-status",
+          "title": "Ask the tax authority directly",
+          "text": "queryStatus asks the authority now instead of reading the last recorded state.",
+          "sdk": "$live = $yona->submissions->queryStatus($draft['id']);\necho 'authority says ', $live['status'], ' ', $live['authorityState'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/invoices/{id}/query-status\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\"",
+          "operationId": "queryInvoiceStatus"
+        },
+        {
+          "id": "download-pdf",
+          "title": "Download the PDF",
+          "text": "The PDF bytes come back as a string in a BinaryResponse. getDownloadLink returns a short-lived URL instead.",
+          "sdk": "$pdf = $yona->output->downloadPdf($draft['id']);\n$file = sys_get_temp_dir() . '/' . ($pdf->fileName ?? \"{$draft['invoiceNumber']}.pdf\");\nfile_put_contents($file, $pdf->data);\necho 'pdf ', $file, ' ', strlen($pdf->data), \" bytes\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}/download\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "downloadInvoice"
+        },
+        {
+          "id": "qr",
+          "title": "Read the QR payload",
+          "text": "Once registered, the invoice carries the verification payload to print as its QR code.",
+          "sdk": "$invoice = $yona->invoices->get($draft['id']);\n$verification = $invoice['verification'] ?? null;\necho 'qr ', $verification !== null ? strlen($verification['payload']) . ' chars' : 'not registered yet', \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getInvoice"
+        }
+      ]
+    },
+    {
+      "id": "webhooks",
+      "title": "Receive webhooks",
+      "summary": "Verify the Yona-Signature of each delivery over the raw body, dispatch by event type, and inspect deliveries with the SDK. Endpoints are registered in the dashboard: an API key can read and test them, not create them.",
+      "steps": [
+        {
+          "id": "secret",
+          "title": "Keep the endpoint secret",
+          "text": "Register your endpoint URL in the dashboard (Developers, Webhooks); it shows the signing secret (whsec_…) once. Keep it in your environment.",
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Nyholm\\Psr7\\Factory\\Psr17Factory;\nuse Psr\\Http\\Message\\ResponseInterface;\nuse Psr\\Http\\Message\\ServerRequestInterface;\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Exception\\WebhookException;\nuse Useyona\\EInvoice\\Webhooks;\n\n$secret = getenv('YONA_WEBHOOK_SECRET') ?: 'whsec_local_example_secret';",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "read-raw-body",
+          "title": "Read the raw body",
+          "text": "The signature covers the exact bytes Yona sent. Read the body as a string (the PSR-7 body stream, or file_get_contents('php://input') without a framework); never verify a re-serialised array.",
+          "sdk": "function readRawBody(ServerRequestInterface $request): string\n{\n    return (string) $request->getBody();\n}",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "dispatch",
+          "title": "Dispatch by event type",
+          "text": "Deduplicate on $event['id']: a redelivery carries the same id. Answer 2xx quickly and do slow work afterwards.",
+          "sdk": "$seen = [];\n/** @param array<string, mixed> $event */\nfunction handleEvent(array $event): void\n{\n    global $seen;\n    if (isset($seen[$event['id']])) {\n        return;\n    }\n    $seen[$event['id']] = true;\n    switch ($event['type']) {\n        case 'invoice.accepted':\n            echo 'accepted ', $event['data']['invoiceId'] ?? '', \"\\n\";\n            break;\n        case 'invoice.rejected':\n            echo 'rejected ', $event['data']['invoiceId'] ?? '', \"\\n\";\n            break;\n        case 'invoice.received':\n            echo \"a supplier sent you an invoice\\n\";\n            break;\n        default:\n            echo 'ignored ', $event['type'], \"\\n\";\n    }\n}",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "handler",
+          "title": "Verify every delivery",
+          "text": "Webhooks::verifyWebhook checks the HMAC-SHA256 signature and the timestamp (±300 s) and returns the parsed event. Refuse anything it rejects with 400. The handler is a PSR-15-style function: pass it the request your framework gives you.",
+          "sdk": "$factory = new Psr17Factory();\nfunction handleDelivery(ServerRequestInterface $request, string $secret, Psr17Factory $factory): ResponseInterface\n{\n    if ($request->getMethod() !== 'POST' || $request->getUri()->getPath() !== '/webhooks/yona') {\n        return $factory->createResponse(404);\n    }\n    $raw = readRawBody($request);\n    try {\n        $event = Webhooks::verifyWebhook($raw, $request, $secret);\n    } catch (WebhookException) {\n        return $factory->createResponse(400)->withBody($factory->createStream('invalid signature'));\n    }\n    handleEvent($event);\n\n    return $factory->createResponse(200)->withBody($factory->createStream('ok'));\n}",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "test-locally",
+          "title": "Test your handler locally",
+          "text": "Webhooks::signWebhookPayload signs a payload exactly as Yona does, so you can exercise the handler before going live, here with a PSR-7 request built in-process. A tampered body is refused.",
+          "sdk": "$body = json_encode([\n    'id' => 'evt_local_1',\n    'type' => 'invoice.accepted',\n    'version' => 1,\n    'createdAt' => gmdate('Y-m-d\\TH:i:s\\Z'),\n    'mode' => 'sandbox',\n    'organizationId' => 'org_local',\n    'data' => ['invoiceId' => 'inv_local'],\n    'test' => true,\n], JSON_THROW_ON_ERROR);\n$delivery = fn (string $payload): ServerRequestInterface => $factory->createServerRequest('POST', 'https://example.com/webhooks/yona')\n    ->withHeader(Webhooks::SIGNATURE_HEADER, Webhooks::signWebhookPayload($body, $secret))\n    ->withBody($factory->createStream($payload));\n$signed = handleDelivery($delivery($body), $secret, $factory);\n$tampered = handleDelivery($delivery(str_replace('accepted', 'rejected', $body)), $secret, $factory);\necho 'signed delivery ', $signed->getStatusCode(), ' | tampered delivery ', $tampered->getStatusCode(), \"\\n\";\nif ($signed->getStatusCode() !== 200 || $tampered->getStatusCode() !== 400) {\n    throw new RuntimeException('the handler did not verify as expected');\n}",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "list-endpoints",
+          "title": "List your endpoints",
+          "text": "The key reads the endpoints registered for its organisation and mode.",
+          "sdk": "$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\n$endpoints = $yona->webhooks->endpoints->list();\necho 'endpoints ', count($endpoints), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/n/v1/webhook-endpoints\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listWebhookEndpoints"
+        },
+        {
+          "id": "list-deliveries",
+          "title": "Inspect deliveries",
+          "text": "Every delivery and its status: delivered, retrying or failed with the reason.",
+          "sdk": "$deliveries = $yona->webhooks->deliveries->list(['limit' => 10]);\nforeach ($deliveries->data as $d) {\n    echo $d['type'], ' ', $d['status'], ' ', $d['lastHttpStatus'] ?? '-', \"\\n\";\n}",
+          "curl": "curl \"https://gp.useyona.com/n/v1/webhook-deliveries\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listWebhookDeliveries"
+        },
+        {
+          "id": "redeliver",
+          "title": "Redeliver a failed delivery",
+          "text": "After fixing your endpoint, ask for one more attempt.",
+          "sdk": "$failed = null;\nforeach ($deliveries->data as $d) {\n    if ($d['status'] === 'failed') {\n        $failed = $d;\n        break;\n    }\n}\nif ($failed !== null) {\n    $yona->webhooks->deliveries->redeliver($failed['id']);\n}\necho 'redelivered ', $failed !== null ? $failed['id'] : 'nothing to redeliver', \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/n/v1/webhook-deliveries/{id}/redeliver\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "redeliverWebhookDelivery"
+        }
+      ]
+    },
+    {
+      "id": "errors-and-retries",
+      "title": "Errors and safe retries",
+      "summary": "Catch the SDK's typed exceptions, branch on errorCode, quote the requestId to support, honour retryAfter, and use idempotency keys so a retried write is never applied or charged twice.",
+      "steps": [
+        {
+          "id": "client",
+          "title": "Configure retries",
+          "text": "The SDK retries GET, PUT and DELETE, and writes that carry an Idempotency-Key, on network errors, timeouts, 408, 429 and 5xx. Other writes are never retried for you.",
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Exception\\ApiException;\nuse Useyona\\EInvoice\\Exception\\ConnectionException;\nuse Useyona\\EInvoice\\Exception\\NotFoundException;\nuse Useyona\\EInvoice\\Exception\\RateLimitException;\nuse Useyona\\EInvoice\\Exception\\ServerException;\nuse Useyona\\EInvoice\\Exception\\TimeoutException;\nuse Useyona\\EInvoice\\Exception\\ValidationException;\nuse Useyona\\EInvoice\\Http\\HttpClient;\nuse Useyona\\EInvoice\\RequestOptions;\n\n$yona = new EInvoice([\n    'api_key' => (string) getenv('YONA_API_KEY'),\n    'timeout' => 30,\n    'retry' => ['max_retries' => 3, 'base_delay' => 0.5, 'max_retry_after' => 30],\n]);",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "validation",
+          "title": "Read a validation error",
+          "text": "A 400 or 422 is a ValidationException. Branch on errorCode, show errors per field, and keep requestId for support.",
+          "sdk": "try {\n    $yona->invoices->create(['invoiceKind' => 'B2B', 'invoiceDate' => '2026-10-05', 'currency' => 'NGN', 'lineItems' => []]);\n    throw new RuntimeException('expected a validation error');\n} catch (ValidationException $err) {\n    echo $err->status, ' ', $err->errorCode, ' ', $err->requestId, \"\\n\";\n    foreach ($err->errors as $e) {\n        echo \"  {$e->field}: {$e->message}\\n\";\n    }\n}",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/invoices\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"invoiceKind\": \"B2B\",\n  \"invoiceDate\": \"2026-09-30\",\n  \"currency\": \"NGN\",\n  \"lineItems\": [\n    {\n      \"quantity\": \"2.5\"\n    }\n  ]\n}'",
+          "operationId": "createInvoice"
+        },
+        {
+          "id": "not-found",
+          "title": "Handle a missing resource",
+          "text": "Every API error extends ApiException, so one catch can handle them all and narrow by class.",
+          "sdk": "try {\n    $yona->invoices->get('0192f3a0-0000-7000-8000-000000000000');\n    throw new RuntimeException('expected a not-found error');\n} catch (NotFoundException $err) {\n    echo 'not found ', $err->errorCode, ' ', $err->requestId, \"\\n\";\n} catch (ApiException $err) {\n    echo 'refused ', $err->status, ' ', $err->errorCode, \"\\n\";\n}",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getInvoice"
+        },
+        {
+          "id": "idempotency",
+          "title": "Make a write safe to retry",
+          "text": "Pass your own idempotencyKey (stored with your order, for example) so a retry after a crash or a timeout returns the first result instead of creating a second invoice.",
+          "sdk": "$idempotencyKey = 'order-' . HttpClient::generateIdempotencyKey();\n$params = [\n    'invoiceKind' => 'B2C',\n    'invoiceDate' => date('Y-m-d'),\n    'currency' => 'NGN',\n    'lineItems' => [[\n        'itemName' => 'Consulting hour',\n        'description' => 'Consulting hour',\n        'unitCode' => 'EA',\n        'quantity' => 1,\n        'unitPrice' => '25000.00',\n        'taxCategory' => 'STANDARD_VAT',\n        'isicCode' => '6201',\n        'serviceCategory' => 'Professional services',\n    ]],\n];\n$first = $yona->invoices->create($params, new RequestOptions(idempotencyKey: $idempotencyKey));\n$again = $yona->invoices->create($params, new RequestOptions(idempotencyKey: $idempotencyKey));\necho 'same invoice on retry: ', var_export($first['id'] === $again['id'], true), \"\\n\";\nif ($first['id'] !== $again['id']) {\n    throw new RuntimeException('an idempotent retry created a second invoice');\n}",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/invoices\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"invoiceKind\": \"B2B\",\n  \"invoiceDate\": \"2026-09-30\",\n  \"currency\": \"NGN\",\n  \"lineItems\": [\n    {\n      \"quantity\": \"2.5\"\n    }\n  ]\n}'",
+          "operationId": "createInvoice"
+        },
+        {
+          "id": "retry-after",
+          "title": "Wait out a rate limit",
+          "text": "When the SDK's own retries are exhausted, a 429 or 503 carries retryAfter (seconds). Retry only what is safe: reads, or writes with an idempotency key.",
+          "sdk": "function withRetry(callable $call, int $attempts = 3): mixed\n{\n    for ($attempt = 1; ; ++$attempt) {\n        try {\n            return $call();\n        } catch (RateLimitException|ServerException|TimeoutException|ConnectionException $err) {\n            if ($attempt >= $attempts) {\n                throw $err;\n            }\n            $seconds = $err instanceof ApiException && $err->retryAfter !== null ? $err->retryAfter : 2 ** $attempt;\n            sleep($seconds);\n        }\n    }\n}\n$page = withRetry(fn () => $yona->invoices->list(['limit' => 5]));\necho 'invoices ', $page->pagination['total'], ' request ', $page->requestId, \"\\n\";",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "cleanup",
+          "title": "Delete the draft",
+          "text": "Drafts can be deleted; their number is never reused.",
+          "sdk": "$yona->invoices->delete($first['id']);",
+          "curl": "curl -X DELETE \"https://gp.useyona.com/i/v1/invoices/{id}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "deleteInvoice"
+        }
+      ]
+    },
+    {
+      "id": "sandbox-and-live",
+      "title": "Sandbox and live",
+      "summary": "The key decides the mode: an sk_test_ key works in sandbox and an sk_live_ key in live, on the same host. Going live changes only the key.",
+      "steps": [
+        {
+          "id": "client",
+          "title": "Create the client and read its mode",
+          "text": "There is no host or mode to configure. The SDK reads the mode from the key prefix.",
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Exception\\ConfigException;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "first-call",
+          "title": "Make your first call",
+          "text": "The readiness check lists what your organisation still needs before it can invoice in this mode.",
+          "sdk": "$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/a/v1/organizations/me/readiness\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getOrganizationReadiness"
+        },
+        {
+          "id": "assert-mode",
+          "title": "Guard against the wrong key",
+          "text": "Pass assert_mode so a deployment refuses to start with a key of the other mode. The error never echoes the key.",
+          "sdk": "$refused = false;\ntry {\n    new EInvoice(['api_key' => (string) getenv('YONA_API_KEY'), 'assert_mode' => $yona->mode() === 'sandbox' ? 'live' : 'sandbox']);\n} catch (ConfigException $err) {\n    $refused = true;\n    echo 'refused: ', $err->getMessage(), \"\\n\";\n}\nif (!$refused) {\n    throw new RuntimeException('assert_mode did not refuse a key of the other mode');\n}",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "sandbox-allowance",
+          "title": "See your sandbox allowance",
+          "text": "Sandbox invoices are free within an allowance; submissions go to the tax authority's sandbox, never to the live register.",
+          "sdk": "if ($yona->mode() === 'sandbox') {\n    echo json_encode($yona->billing->sandbox->getUsage(), JSON_PRETTY_PRINT), \"\\n\";\n}",
+          "curl": "curl \"https://gp.useyona.com/b/v1/sandbox/usage\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getSandboxUsage"
+        },
+        {
+          "id": "tax-connection",
+          "title": "Check the tax connection",
+          "text": "Each mode has its own connection to the tax authority. Live needs the organisation approved for live and its live connection made in the dashboard.",
+          "sdk": "$connection = $yona->taxConnection->get();\necho json_encode($connection, JSON_PRETTY_PRINT), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/tax-connection\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getTaxConnection"
+        },
+        {
+          "id": "go-live",
+          "title": "Go live",
+          "text": "Create a live key in the dashboard and deploy it as YONA_API_KEY in place of the test key. Nothing else in your code changes: the same calls, the same host.",
+          "sdk": "$client = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $client->mode() === 'live' ? 'live: submissions are reported to the tax authority' : 'sandbox: deploy an sk_live_ key to go live', \"\\n\";",
+          "curl": null,
+          "operationId": null
+        }
+      ]
+    },
+    {
+      "id": "received-invoices",
+      "title": "Received invoices",
+      "summary": "List the invoices other businesses issued to you, filter them, and walk every page with paginate.",
+      "steps": [
+        {
+          "id": "client",
+          "title": "Create the client",
+          "text": null,
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Page;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "connection",
+          "title": "Check the tax connection",
+          "text": "Received invoices arrive through your connection to the tax authority; until it is connected the list is empty.",
+          "sdk": "$connection = $yona->taxConnection->get();\necho 'tax connection ', json_encode($connection), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/tax-connection\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getTaxConnection"
+        },
+        {
+          "id": "list",
+          "title": "Read the first page",
+          "text": "Newest first. sync tells you whether the mirror is still filling (syncing) and when it last read the tax authority.",
+          "sdk": "$first = $yona->inboundInvoices->list(['limit' => 20]);\necho 'received ', $first->pagination['total'] ?? count($first->data['items']), ' syncing ', var_export($first->data['sync']['syncing'], true), \"\\n\";\nforeach ($first->data['items'] as $inv) {\n    echo $inv['irn'], ' ', $inv['supplierName'] ?? $inv['supplierTin'], ' ', $inv['payableAmountMinor'], ' ', $inv['currency'], ' ', $inv['paymentStatus'], \"\\n\";\n}",
+          "curl": "curl \"https://gp.useyona.com/i/v1/inbound-invoices\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listInboundInvoices"
+        },
+        {
+          "id": "filter",
+          "title": "Filter",
+          "text": "Filter by seller name or TIN, payment status, issue date, amount or currency.",
+          "sdk": "$unpaid = $yona->inboundInvoices->list(['paymentStatus' => 'unpaid', 'sort' => '-issueDate', 'limit' => 20]);\necho 'unpaid on this page ', count($unpaid->data['items']), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/inbound-invoices\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listInboundInvoices"
+        },
+        {
+          "id": "paginate",
+          "title": "Walk every page",
+          "text": "EInvoice::paginate fetches page after page for you. Received invoices return an object with items, so map each page to a Page of its items.",
+          "sdk": "$count = 0;\n$pages = EInvoice::paginate(function (array $query) use ($yona): Page {\n    $res = $yona->inboundInvoices->list($query);\n    $items = $res->data['items'];\n    $pagination = $res->pagination ?? ['total' => count($items), 'page' => $query['page'], 'pageSize' => $query['limit'], 'totalPages' => 1, 'hasNext' => false, 'hasPrevious' => false];\n\n    return new Page($items, $pagination);\n}, ['limit' => 50]);\nforeach ($pages as $inv) {\n    ++$count;\n    if ($count <= 3) {\n        echo $inv['irn'], \"\\n\";\n    }\n}\necho 'walked ', $count, \" received invoices\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/inbound-invoices\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listInboundInvoices"
+        },
+        {
+          "id": "detail",
+          "title": "Open one",
+          "text": null,
+          "sdk": "$one = $first->data['items'][0] ?? null;\nif ($one !== null) {\n    echo json_encode($yona->inboundInvoices->get($one['id']), JSON_PRETTY_PRINT), \"\\n\";\n}",
+          "curl": "curl \"https://gp.useyona.com/i/v1/inbound-invoices/{id}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getInboundInvoice"
+        },
+        {
+          "id": "analytics",
+          "title": "Summarise",
+          "text": "Totals by status and seller for a period.",
+          "sdk": "echo json_encode($yona->inboundInvoices->getAnalytics(), JSON_PRETTY_PRINT), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/inbound-invoices/analytics\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getInboundInvoiceAnalytics"
+        },
+        {
+          "id": "paginate-buyers",
+          "title": "The same for any list",
+          "text": "Every list method returns a Page with data and pagination, so paginate works on it directly.",
+          "sdk": "$buyers = 0;\nforeach (EInvoice::paginate(fn (array $q) => $yona->buyers->list($q), ['limit' => 100]) as $buyer) {\n    if ($buyer['id'] !== '') {\n        ++$buyers;\n    }\n}\necho 'buyers ', $buyers, \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listBuyers"
+        }
+      ]
+    }
+  ]
+}
