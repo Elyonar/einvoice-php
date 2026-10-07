@@ -5,8 +5,8 @@ invoicing, submissions to the tax authority, output and share links, items, refe
 the read-only seller, received invoices and issued history, invoice settings, the tax connection, the
 organisation (read), billing reads and webhooks (read, test, redeliver).
 
-The same surface as [`@useyona/einvoice-js`](https://github.com/Elyonar/einvoice-js), module for
-module, with the same method names.
+Every Yona SDK exposes the same modules and methods; in PHP the names are `camelCase`
+(`$client->invoices->issueCreditNote()`), so the portal guides read the same in every language.
 
 ## Features
 
