@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-07)
 
 The first release of the PHP SDK, at parity with `@useyona/einvoice-js` 0.8.1 (einvoice-js
 `feat/codegen-emitters`, commit `95dff8f`): 99 methods in 23 modules over the 106 operations an API
