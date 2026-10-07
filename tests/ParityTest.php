@@ -36,8 +36,8 @@ final class ParityTest extends TestCase
     /** @var array{count: int, operations: list<Op>} */
     private static array $snapshot;
 
-    /** @var list<Call> */
-    private static array $calls;
+    /** @var list<Call>|null */
+    private static ?array $calls = null;
 
     public static function setUpBeforeClass(): void
     {
@@ -48,7 +48,17 @@ final class ParityTest extends TestCase
         /** @var array{count: int, operations: list<Op>} $snapshot */
         $snapshot = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         self::$snapshot = $snapshot;
-        self::$calls = self::recordCalls();
+    }
+
+    /**
+     * The recorded calls, made on first use from inside a test (not in setUpBeforeClass) so the
+     * 99 service methods they exercise count towards coverage.
+     *
+     * @return list<Call>
+     */
+    private static function calls(): array
+    {
+        return self::$calls ??= self::recordCalls();
     }
 
     private static function opKey(string $method, string $path): string
@@ -182,7 +192,7 @@ final class ParityTest extends TestCase
     public function testEverySdkMethodCallsExactlyOneSnapshotOperation(): void
     {
         $orphans = [];
-        foreach (self::$calls as $call) {
+        foreach (self::calls() as $call) {
             if (self::match($call['method'], $call['path']) === null) {
                 $orphans[] = "{$call['label']} → {$call['method']} {$call['path']}";
             }
@@ -193,7 +203,7 @@ final class ParityTest extends TestCase
     public function testEverySnapshotOperationHasAMethodOrADocumentedExclusion(): void
     {
         $covered = [];
-        foreach (self::$calls as $call) {
+        foreach (self::calls() as $call) {
             $op = self::match($call['method'], $call['path']);
             self::assertNotNull($op);
             $covered[self::opKey($op['method'], $op['path'])] = true;
@@ -244,7 +254,7 @@ final class ParityTest extends TestCase
         }
         $expected = array_values(array_unique([...$expected, ...self::KEYED_BUT_UNDOCUMENTED]));
         $actual = [];
-        foreach (self::$calls as $call) {
+        foreach (self::calls() as $call) {
             if ($call['idempotent']) {
                 $op = self::match($call['method'], $call['path']);
                 self::assertNotNull($op);
@@ -271,8 +281,8 @@ final class ParityTest extends TestCase
 
     public function testTheMethodCountIsTheDocumentedSurface(): void
     {
-        self::assertCount(99, self::$calls, '99 methods in 23 modules (update CLAUDE.md and README when this changes)');
-        $modules = array_unique(array_map(fn (array $c): string => substr($c['label'], 0, (int) strrpos($c['label'], '.')), self::$calls));
+        self::assertCount(99, self::calls(), '99 methods in 23 modules (update CLAUDE.md and README when this changes)');
+        $modules = array_unique(array_map(fn (array $c): string => substr($c['label'], 0, (int) strrpos($c['label'], '.')), self::calls()));
         self::assertCount(23, $modules);
     }
 
