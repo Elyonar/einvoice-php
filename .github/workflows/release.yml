@@ -51,11 +51,13 @@ jobs:
 
       - name: Install
         if: steps.tag_check.outputs.exists == 'false'
-        run: composer install --no-interaction --no-progress --prefer-dist
+        run: composer update --no-interaction --no-progress --prefer-dist
 
       - name: Lint, test, sync-check, guides-check
         if: steps.tag_check.outputs.exists == 'false'
         run: make lint test sync-check guides-check
+        env:
+          EINVOICE_JS_TOKEN: ${{ secrets.EINVOICE_JS_TOKEN }}
 
       - name: Create git tag
         if: steps.tag_check.outputs.exists == 'false'
