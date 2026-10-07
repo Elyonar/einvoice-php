@@ -1,6 +1,6 @@
 {
   "sdkVersion": "0.1.0",
-  "generatedFrom": "0000000",
+  "generatedFrom": "2813853",
   "install": "composer require useyona/einvoice-php",
   "quickStart": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_\n\n$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
   "recipes": [
