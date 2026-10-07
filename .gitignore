@@ -8,3 +8,6 @@ clover.xml
 .env
 .DS_Store
 composer.lock
+CLAUDE.md
+DEVELOPMENT.md
+PUBLISHING.md
