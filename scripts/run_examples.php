@@ -3,8 +3,7 @@
 declare(strict_types=1);
 
 /*
- * Runs examples/*.php as an integrator would: the key comes only from YONA_API_KEY. Used by
- * scripts/smoke_remote.php. Not shipped. The key is passed through the child's environment and never printed.
+ * Runs examples/*.php as an integrator would: the key comes only from YONA_API_KEY. Not shipped. The key is passed through the child's environment and never printed.
  *
  *   php scripts/run_examples.php            (YONA_API_KEY, optional YONA_BASE_URL) every example
  *   php scripts/run_examples.php webhooks   one example

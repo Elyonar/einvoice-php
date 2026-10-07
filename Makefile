@@ -1,4 +1,4 @@
-.PHONY: install sync sync-check test lint fix examples guides guides-check smoke-remote clean
+.PHONY: install sync sync-check test lint fix examples guides guides-check clean
 
 COMPOSER ?= composer
 PHP ?= php
@@ -31,8 +31,6 @@ guides:             ## examples/ -> guides/guides.json
 guides-check:       ## fail when guides/guides.json is stale
 	$(PHP) scripts/export_guides.php --check
 
-smoke-remote:       ## verify your own sandbox key against the real API (refuses sk_live_)
-	$(PHP) scripts/smoke_remote.php
 
 clean:
 	rm -rf .phpunit.cache .php-cs-fixer.cache coverage coverage.xml

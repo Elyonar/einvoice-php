@@ -11,3 +11,4 @@ composer.lock
 CLAUDE.md
 DEVELOPMENT.md
 PUBLISHING.md
+scripts/smoke_remote.php
