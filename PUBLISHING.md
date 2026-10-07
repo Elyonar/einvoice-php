@@ -2,7 +2,7 @@
 
 Packagist installs from git tags: there is no upload step. A release is a tag `v<version>` on `main`.
 
-## One-time setup (owner)
+## One-time setup
 
 1. Sign in to [packagist.org](https://packagist.org) and claim the vendor `useyona` (the first package
    submitted under a vendor name reserves it for that account).
