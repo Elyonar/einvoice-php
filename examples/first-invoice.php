@@ -16,9 +16,9 @@ $yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);
 $ref = bin2hex(random_bytes(4));
 
 // @step create-buyer Create a buyer
-// @text A buyer is the party you invoice. A B2B buyer carries its tax id (TIN), which the tax authority checks on submission. A TIN is unique per organisation: on 409 RES002, reuse the buyer you already have.
+// @text A buyer is the party you invoice. A B2B buyer carries its tax id (TIN), which the tax authority checks on submission. A buyer can never carry your own organisation's TIN (the authority refuses SAME_PARTY_TIN); the sandbox accepts any well-formed TIN. A TIN is unique per organisation: on 409 RES002, reuse the buyer you already have.
 // @op createBuyer
-$taxId = '33875194-0001';
+$taxId = '12345678-0001';
 $findOrCreateBuyer = function () use ($yona, $ref, $taxId): array {
     try {
         return $yona->buyers->create([
@@ -90,7 +90,7 @@ $submitted = $yona->submissions->submit($draft['id']);
 echo 'submitted ', $submitted['invoice']['status'], "\n";
 
 // @step wait Wait for the outcome
-// @text Poll the status as last recorded (or listen for invoice.accepted / invoice.rejected webhooks).
+// @text Poll the status as last recorded (or listen for invoice.accepted / invoice.rejected webhooks). A rejection carries the authority's reasons in submissions[].rejectReasons: print them and stop, since a rejected invoice cannot be queried or downloaded.
 // @op getInvoiceStatus
 $settled = ['signed', 'transmitted', 'accepted', 'rejected', 'failed'];
 $status = $yona->submissions->getStatus($draft['id']);
@@ -99,6 +99,14 @@ for ($i = 0; $i < 45 && !in_array($status['status'], $settled, true); ++$i) {
     $status = $yona->submissions->getStatus($draft['id']);
 }
 echo 'status ', $status['status'], ' ', $status['authorityReference'] ?? '', "\n";
+if ($status['status'] === 'rejected') {
+    foreach ($status['submissions'] as $submission) {
+        foreach ($submission['rejectReasons'] as $reason) {
+            echo '  refused: ', $reason['code'], ' ', $reason['field'] ?? '', ' ', $reason['message'], "\n";
+        }
+    }
+    throw new \RuntimeException('the tax authority rejected the invoice; fix what it named and submit again');
+}
 
 // @step query-status Ask the tax authority directly
 // @text queryStatus asks the authority now instead of reading the last recorded state.

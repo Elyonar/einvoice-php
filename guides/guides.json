@@ -1,6 +1,6 @@
 {
   "sdkVersion": "0.1.0",
-  "generatedFrom": "2813853",
+  "generatedFrom": "cd9245b",
   "install": "composer require useyona/einvoice-php",
   "quickStart": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_\n\n$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
   "recipes": [
@@ -20,8 +20,8 @@
         {
           "id": "create-buyer",
           "title": "Create a buyer",
-          "text": "A buyer is the party you invoice. A B2B buyer carries its tax id (TIN), which the tax authority checks on submission. A TIN is unique per organisation: on 409 RES002, reuse the buyer you already have.",
-          "sdk": "$taxId = '33875194-0001';\n$findOrCreateBuyer = function () use ($yona, $ref, $taxId): array {\n    try {\n        return $yona->buyers->create([\n            'name' => \"Acme Nigeria Ltd {$ref}\",\n            'partyType' => 'company',\n            'taxId' => $taxId,\n            'email' => \"accounts.{$ref}@example.com\",\n            'address' => ['line1' => '1 Marina', 'city' => 'Lagos', 'country' => 'NG'],\n        ]);\n    } catch (ConflictException $err) {\n        if ($err->errorCode !== 'RES002') {\n            throw $err;\n        }\n        $found = $yona->buyers->list(['search' => $taxId, 'limit' => 1]);\n        if ($found->data === []) {\n            throw $err;\n        }\n\n        return $found->data[0];\n    }\n};\n$buyer = $findOrCreateBuyer();\necho 'buyer ', $buyer['id'], \"\\n\";",
+          "text": "A buyer is the party you invoice. A B2B buyer carries its tax id (TIN), which the tax authority checks on submission. A buyer can never carry your own organisation's TIN (the authority refuses SAME_PARTY_TIN); the sandbox accepts any well-formed TIN. A TIN is unique per organisation: on 409 RES002, reuse the buyer you already have.",
+          "sdk": "$taxId = '12345678-0001';\n$findOrCreateBuyer = function () use ($yona, $ref, $taxId): array {\n    try {\n        return $yona->buyers->create([\n            'name' => \"Acme Nigeria Ltd {$ref}\",\n            'partyType' => 'company',\n            'taxId' => $taxId,\n            'email' => \"accounts.{$ref}@example.com\",\n            'address' => ['line1' => '1 Marina', 'city' => 'Lagos', 'country' => 'NG'],\n        ]);\n    } catch (ConflictException $err) {\n        if ($err->errorCode !== 'RES002') {\n            throw $err;\n        }\n        $found = $yona->buyers->list(['search' => $taxId, 'limit' => 1]);\n        if ($found->data === []) {\n            throw $err;\n        }\n\n        return $found->data[0];\n    }\n};\n$buyer = $findOrCreateBuyer();\necho 'buyer ', $buyer['id'], \"\\n\";",
           "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"string\"\n}'",
           "operationId": "createBuyer"
         },
@@ -68,8 +68,8 @@
         {
           "id": "wait",
           "title": "Wait for the outcome",
-          "text": "Poll the status as last recorded (or listen for invoice.accepted / invoice.rejected webhooks).",
-          "sdk": "$settled = ['signed', 'transmitted', 'accepted', 'rejected', 'failed'];\n$status = $yona->submissions->getStatus($draft['id']);\nfor ($i = 0; $i < 45 && !in_array($status['status'], $settled, true); ++$i) {\n    sleep(2);\n    $status = $yona->submissions->getStatus($draft['id']);\n}\necho 'status ', $status['status'], ' ', $status['authorityReference'] ?? '', \"\\n\";",
+          "text": "Poll the status as last recorded (or listen for invoice.accepted / invoice.rejected webhooks). A rejection carries the authority's reasons in submissions[].rejectReasons: print them and stop, since a rejected invoice cannot be queried or downloaded.",
+          "sdk": "$settled = ['signed', 'transmitted', 'accepted', 'rejected', 'failed'];\n$status = $yona->submissions->getStatus($draft['id']);\nfor ($i = 0; $i < 45 && !in_array($status['status'], $settled, true); ++$i) {\n    sleep(2);\n    $status = $yona->submissions->getStatus($draft['id']);\n}\necho 'status ', $status['status'], ' ', $status['authorityReference'] ?? '', \"\\n\";\nif ($status['status'] === 'rejected') {\n    foreach ($status['submissions'] as $submission) {\n        foreach ($submission['rejectReasons'] as $reason) {\n            echo '  refused: ', $reason['code'], ' ', $reason['field'] ?? '', ' ', $reason['message'], \"\\n\";\n        }\n    }\n    throw new \\RuntimeException('the tax authority rejected the invoice; fix what it named and submit again');\n}",
           "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}/status\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
           "operationId": "getInvoiceStatus"
         },

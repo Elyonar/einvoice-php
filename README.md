@@ -47,7 +47,7 @@ $client->mode(); // 'sandbox' for sk_test_… keys, 'live' for sk_live_… keys
 // 1. A buyer
 $buyer = $client->buyers->create([
     'name' => 'Acme Nigeria Ltd',
-    'taxId' => '33875194-0001',
+    'taxId' => '12345678-0001',
     'email' => 'accounts@acme.ng',
     'partyType' => 'company',
     'address' => ['line1' => '1 Marina', 'city' => 'Lagos', 'country' => 'NG'],
