@@ -32,3 +32,15 @@ Local fallback: `git tag -a v0.1.0 -m "Release v0.1.0" && git push origin v0.1.0
 updates from the hook; or press "Update" on the package page).
 
 `composer.json` carries no `version` field on purpose: Packagist derives the version from the tag.
+
+## While einvoice-js is private
+
+CI cannot fetch the pinned einvoice-js commit without a credential, so its `sync-check` job skips with a
+notice (no `EINVOICE_JS_TOKEN` secret is set; the owner chose this over storing a credential). Run the
+guard locally before every release:
+
+```bash
+EINVOICE_JS_DIR=../elyonar-sdk make sync-check
+```
+
+Once einvoice-js is public, the job runs in CI unchanged.
