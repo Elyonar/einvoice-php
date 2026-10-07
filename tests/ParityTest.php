@@ -289,11 +289,18 @@ final class ParityTest extends TestCase
     public function testTheGeneratedTypesAreWhatTheSnapshotGenerates(): void
     {
         // `make sync-check` (CI) fetches the pinned einvoice-js commit and compares; here the generator
-        // runs only when a local einvoice-js checkout is at hand (EINVOICE_JS_DIR, or ../elyonar-sdk).
+        // runs only when a local einvoice-js checkout is at hand: EINVOICE_JS_DIR, else a sibling folder
+        // (its clone name first; the folder may be called anything).
         $root = dirname(__DIR__);
-        $dir = getenv('EINVOICE_JS_DIR') ?: dirname($root) . '/elyonar-sdk';
-        $generator = $dir . '/scripts/gen-types.mjs';
-        if (!is_file($generator)) {
+        $candidates = array_filter([getenv('EINVOICE_JS_DIR') ?: null, dirname($root) . '/einvoice-js', dirname($root) . '/elyonar-sdk']);
+        $generator = '';
+        foreach ($candidates as $dir) {
+            if (is_file($dir . '/scripts/gen-types.mjs')) {
+                $generator = $dir . '/scripts/gen-types.mjs';
+                break;
+            }
+        }
+        if ($generator === '') {
             self::markTestSkipped('no local einvoice-js checkout: `make sync-check` covers this in CI');
         }
         $command = sprintf(
