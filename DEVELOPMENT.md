@@ -1,4 +1,4 @@
-# Contributing to useyona/einvoice-php
+# Developing useyona/einvoice-php
 
 ## Development setup
 
@@ -24,7 +24,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`
 Scopes: `client`, `invoices`, `submissions`, `output`, `items`, `reference`, `inbound`, `sellers`,
 `buyers`, `billing`, `webhooks`, `organization`, `parity`, `smoke`, `types`, `config`, `deps`, `release`.
 
-## Pull requests
+## Before merging a change
 
 - `make lint` (phpstan level 8, php-cs-fixer PSR-12) and `make test` must pass (CI runs them on PHP
   8.1–8.4 with a coverage gate of 80 %, plus `make sync-check` and `make guides-check`).
