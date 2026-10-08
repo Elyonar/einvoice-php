@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Useyona\EInvoice\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Useyona\EInvoice\EInvoice;
 use Useyona\EInvoice\ExcludedOperations;
 use Useyona\EInvoice\RequestOptions;
-use Useyona\EInvoice\Service\BaseService;
 use Useyona\EInvoice\Tests\Support\FakeHttpClient;
 use Useyona\EInvoice\Tests\Support\Responses;
+use Useyona\EInvoice\Tests\Support\SdkSurface;
 
 /**
  * PARITY: the SDK's methods and the API-key operations of the gateway's OpenAPI
  * (scripts/openapi-api-key-ops.json, copied from einvoice-js by `make sync`) must agree both ways:
- *   - every SDK method calls exactly one snapshot operation;
+ *   - every SDK method calls exactly one snapshot operation (the calls are recorded by
+ *     {@see SdkSurface}, which guides/operations.json is exported from as well);
  *   - every snapshot operation is called by at least one method, or is in ExcludedOperations with a
  *     reason, and every exclusion names a snapshot operation no method calls;
  *   - an Idempotency-Key is generated exactly on the POST/GET routes that accept one;
@@ -23,7 +23,7 @@ use Useyona\EInvoice\Tests\Support\Responses;
  * The same five assertions as einvoice-js tests/parity.test.ts.
  *
  * @phpstan-type Op array{method: string, path: string, operationId: string, description?: string|null, parameters: list<array{in: string, name: string}>}
- * @phpstan-type Call array{label: string, method: string, path: string, idempotent: bool}
+ * @phpstan-import-type Call from SdkSurface
  */
 final class ParityTest extends TestCase
 {
@@ -58,7 +58,7 @@ final class ParityTest extends TestCase
      */
     private static function calls(): array
     {
-        return self::$calls ??= self::recordCalls();
+        return self::$calls ??= SdkSurface::recordCalls();
     }
 
     private static function opKey(string $method, string $path): string
@@ -67,120 +67,13 @@ final class ParityTest extends TestCase
     }
 
     /**
-     * The snapshot operation a concrete request matches: the template with the fewest placeholders wins.
+     * The snapshot operation a concrete request matches (see {@see SdkSurface::match()}).
      *
      * @return Op|null
      */
     private static function match(string $method, string $path): ?array
     {
-        $hits = [];
-        foreach (self::$snapshot['operations'] as $op) {
-            if ($op['method'] !== $method) {
-                continue;
-            }
-            $regex = '#^' . preg_replace('/\\\\\{[^}]+\\\\\}/', '[^/]+', preg_quote($op['path'], '#')) . '$#';
-            if (preg_match($regex, $path) === 1) {
-                $hits[] = [substr_count($op['path'], '{'), $op];
-            }
-        }
-        usort($hits, fn (array $a, array $b): int => $a[0] <=> $b[0]);
-
-        return $hits[0][1] ?? null;
-    }
-
-    /**
-     * Every (label, service instance) reachable from the client: the properties typed as a service,
-     * and the groups (billing, webhooks) one level down.
-     *
-     * @return array<string, BaseService>
-     */
-    private static function services(EInvoice $client): array
-    {
-        $out = [];
-        foreach ((new \ReflectionClass($client))->getProperties(\ReflectionProperty::IS_PUBLIC) as $property) {
-            if ($property->getName() === 'http') {
-                continue;
-            }
-            $value = $property->getValue($client);
-            if ($value instanceof BaseService) {
-                $out[$property->getName()] = $value;
-                continue;
-            }
-            self::assertIsObject($value);
-            foreach ((new \ReflectionClass($value))->getProperties(\ReflectionProperty::IS_PUBLIC) as $inner) {
-                $service = $inner->getValue($value);
-                self::assertInstanceOf(BaseService::class, $service, "{$property->getName()}.{$inner->getName()}");
-                $out["{$property->getName()}.{$inner->getName()}"] = $service;
-            }
-        }
-
-        return $out;
-    }
-
-    /** @return list<\ReflectionMethod> */
-    private static function publicMethods(BaseService $service): array
-    {
-        return array_values(array_filter(
-            (new \ReflectionClass($service))->getMethods(\ReflectionMethod::IS_PUBLIC),
-            fn (\ReflectionMethod $m): bool => !$m->isConstructor() && !$m->isStatic(),
-        ));
-    }
-
-    /**
-     * Positional placeholders from the parameter types: `string` → 'ID1', 'ID2'…; `array` → [];
-     * a nullable or `RequestOptions` parameter → null; the first optional parameter ends the list.
-     *
-     * @return list<mixed>
-     */
-    private static function placeholderArgs(\ReflectionMethod $method): array
-    {
-        $args = [];
-        $ids = 0;
-        foreach ($method->getParameters() as $p) {
-            if ($p->isOptional()) {
-                break;
-            }
-            $type = $p->getType();
-            self::assertInstanceOf(\ReflectionNamedType::class, $type, "{$method->getName()}({$p->getName()})");
-            if ($type->allowsNull() || $type->getName() === RequestOptions::class) {
-                $args[] = null;
-            } elseif ($type->getName() === 'array') {
-                $args[] = [];
-            } elseif ($type->getName() === 'string') {
-                $args[] = 'ID' . (++$ids);
-            } else {
-                self::fail("{$method->getName()}: no placeholder for a {$type->getName()} parameter");
-            }
-        }
-
-        return $args;
-    }
-
-    /**
-     * Calls every SDK method once with placeholder arguments and records the request it builds.
-     *
-     * @return list<Call>
-     */
-    private static function recordCalls(): array
-    {
-        $calls = [];
-        foreach (self::services(new EInvoice(['api_key' => Responses::TEST_KEY])) as $label => $service) {
-            foreach (self::publicMethods($service) as $method) {
-                $fake = new FakeHttpClient([Responses::ok([])]);
-                $target = self::services(Responses::client($fake))[$label];
-                $method->invokeArgs($target, self::placeholderArgs($method));
-                self::assertSame(1, $fake->calls(), "{$label}.{$method->getName()} made {$fake->calls()} requests");
-                $req = $fake->last();
-                $calls[] = [
-                    'label' => "{$label}.{$method->getName()}",
-                    'method' => $req->getMethod(),
-                    'path' => $req->getUri()->getPath(),
-                    'idempotent' => $req->hasHeader('Idempotency-Key'),
-                ];
-            }
-        }
-
-        return $calls;
+        return SdkSurface::match(self::$snapshot['operations'], $method, $path);
     }
 
     public function testTheSnapshotIsTheApiKeySurface(): void
@@ -193,8 +86,8 @@ final class ParityTest extends TestCase
     {
         $orphans = [];
         foreach (self::calls() as $call) {
-            if (self::match($call['method'], $call['path']) === null) {
-                $orphans[] = "{$call['label']} → {$call['method']} {$call['path']}";
+            if (self::match($call['httpMethod'], $call['path']) === null) {
+                $orphans[] = "{$call['label']} → {$call['httpMethod']} {$call['path']}";
             }
         }
         self::assertSame([], $orphans);
@@ -204,7 +97,7 @@ final class ParityTest extends TestCase
     {
         $covered = [];
         foreach (self::calls() as $call) {
-            $op = self::match($call['method'], $call['path']);
+            $op = self::match($call['httpMethod'], $call['path']);
             self::assertNotNull($op);
             $covered[self::opKey($op['method'], $op['path'])] = true;
         }
@@ -256,7 +149,7 @@ final class ParityTest extends TestCase
         $actual = [];
         foreach (self::calls() as $call) {
             if ($call['idempotent']) {
-                $op = self::match($call['method'], $call['path']);
+                $op = self::match($call['httpMethod'], $call['path']);
                 self::assertNotNull($op);
                 $actual[] = self::opKey($op['method'], $op['path']);
             }

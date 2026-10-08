@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
+## Unreleased
+
+### Added
+
+- `guides/operations.json` (`make operations`): per API operation, the method that calls it and a
+  call template for the portal's API playground, derived from the same recorded calls as the parity
+  test; `make test` compiles every template (`php -l` and phpstan) and fails when the file is stale.
+
 ## 0.1.0 (2026-10-07)
 
 The first release of the PHP SDK, at parity with `@useyona/einvoice-js` 0.8.1 (einvoice-js
