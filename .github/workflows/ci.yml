@@ -46,6 +46,9 @@ jobs:
       - name: Guides are current
         run: make guides-check
 
+      - name: Operations map is current
+        run: make operations-check
+
   sync-check:
     # The models, snapshot and vectors must be what the pinned einvoice-js commit generates.
     runs-on: ubuntu-latest

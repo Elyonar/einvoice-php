@@ -1,4 +1,4 @@
-.PHONY: install sync sync-check test lint fix examples guides guides-check clean
+.PHONY: install sync sync-check test lint fix examples guides guides-check operations operations-check clean
 
 COMPOSER ?= composer
 PHP ?= php
@@ -30,6 +30,12 @@ guides:             ## examples/ -> guides/guides.json
 
 guides-check:       ## fail when guides/guides.json is stale
 	$(PHP) scripts/export_guides.php --check
+
+operations:         ## SDK surface -> guides/operations.json (the API playground's per-operation calls)
+	$(PHP) scripts/export_operations.php
+
+operations-check:   ## fail when guides/operations.json is stale (its compile check runs in `make test`)
+	$(PHP) scripts/export_operations.php --check
 
 
 clean:

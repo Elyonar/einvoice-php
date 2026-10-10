@@ -1,0 +1,503 @@
+{
+  "language": "php",
+  "package": "useyona/einvoice-php",
+  "sdkVersion": "0.1.0",
+  "generatedFrom": "d7dc73a",
+  "setup": "<?php\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
+  "literal": {
+    "string": "single",
+    "body": "php-array"
+  },
+  "operations": {
+    "archiveItem": {
+      "module": "items",
+      "method": "archive",
+      "template": "$result = $yona->items->archive({{path:id}});"
+    },
+    "batchSubmitInvoices": {
+      "module": "submissions",
+      "method": "batchSubmit",
+      "template": "$result = $yona->submissions->batchSubmit({{body}});"
+    },
+    "bulkDeleteBuyers": {
+      "module": "buyers",
+      "method": "bulkDelete",
+      "template": "$result = $yona->buyers->bulkDelete({{body}});"
+    },
+    "cancelInvoice": {
+      "module": "invoices",
+      "method": "cancel",
+      "template": "$result = $yona->invoices->cancel({{path:id}}, {{body}});"
+    },
+    "checkBillingAccountBalance": {
+      "module": "billing.accounts",
+      "method": "checkBalance",
+      "template": "$result = $yona->billing->accounts->checkBalance({{path:id}}, {{query}});"
+    },
+    "checkBuyerReachability": {
+      "module": "buyers",
+      "method": "checkReachability",
+      "template": "$result = $yona->buyers->checkReachability({{query}});"
+    },
+    "checkBuyerWithTaxAuthority": {
+      "module": "buyers",
+      "method": "checkWithTaxAuthority",
+      "template": "$result = $yona->buyers->checkWithTaxAuthority({{body}});"
+    },
+    "createAndSubmitInvoice": {
+      "module": "submissions",
+      "method": "createAndSubmit",
+      "template": "$result = $yona->submissions->createAndSubmit({{body}});"
+    },
+    "createBuyer": {
+      "module": "buyers",
+      "method": "create",
+      "template": "$result = $yona->buyers->create({{body}});"
+    },
+    "createInvoice": {
+      "module": "invoices",
+      "method": "create",
+      "template": "$result = $yona->invoices->create({{body}});"
+    },
+    "createInvoiceShareLink": {
+      "module": "shareLinks",
+      "method": "create",
+      "template": "$result = $yona->shareLinks->create({{path:id}}, {{body}});"
+    },
+    "createItem": {
+      "module": "items",
+      "method": "create",
+      "template": "$result = $yona->items->create({{body}});"
+    },
+    "deleteBuyer": {
+      "module": "buyers",
+      "method": "delete",
+      "template": "$result = $yona->buyers->delete({{path:id}});"
+    },
+    "deleteInvoice": {
+      "module": "invoices",
+      "method": "delete",
+      "template": "$result = $yona->invoices->delete({{path:id}});"
+    },
+    "deleteItem": {
+      "module": "items",
+      "method": "delete",
+      "template": "$result = $yona->items->delete({{path:id}});"
+    },
+    "downloadInvoice": {
+      "module": "output",
+      "method": "getDownloadLink",
+      "template": "$result = $yona->output->getDownloadLink({{path:id}});"
+    },
+    "downloadIssuedHistoryPdf": {
+      "module": "issuedHistory",
+      "method": "downloadPdf",
+      "template": "$result = $yona->issuedHistory->downloadPdf({{path:id}});"
+    },
+    "finaliseInvoice": {
+      "module": "invoices",
+      "method": "finalise",
+      "template": "$result = $yona->invoices->finalise({{path:id}});"
+    },
+    "getActiveSubscription": {
+      "module": "billing.subscriptions",
+      "method": "getActive",
+      "template": "$result = $yona->billing->subscriptions->getActive();"
+    },
+    "getBillingAccount": {
+      "module": "billing.accounts",
+      "method": "getMine",
+      "template": "$result = $yona->billing->accounts->getMine({{query}});"
+    },
+    "getBillingAccountStats": {
+      "module": "billing.accounts",
+      "method": "getStats",
+      "template": "$result = $yona->billing->accounts->getStats({{path:id}}, {{query}});"
+    },
+    "getBillingStatement": {
+      "module": "billing.statements",
+      "method": "get",
+      "template": "$result = $yona->billing->statements->get({{path:period}}, {{query}});"
+    },
+    "getBuyer": {
+      "module": "buyers",
+      "method": "get",
+      "template": "$result = $yona->buyers->get({{path:id}});"
+    },
+    "getBuyerVerificationStatus": {
+      "module": "buyers",
+      "method": "getVerificationStatus",
+      "template": "$result = $yona->buyers->getVerificationStatus({{path:id}});"
+    },
+    "getInboundHistoryRun": {
+      "module": "inboundInvoices",
+      "method": "getHistoryRun",
+      "template": "$result = $yona->inboundInvoices->getHistoryRun({{path:runId}});"
+    },
+    "getInboundInvoice": {
+      "module": "inboundInvoices",
+      "method": "get",
+      "template": "$result = $yona->inboundInvoices->get({{path:id}});"
+    },
+    "getInboundInvoiceAnalytics": {
+      "module": "inboundInvoices",
+      "method": "getAnalytics",
+      "template": "$result = $yona->inboundInvoices->getAnalytics({{query}});"
+    },
+    "getInvoice": {
+      "module": "invoices",
+      "method": "get",
+      "template": "$result = $yona->invoices->get({{path:id}});"
+    },
+    "getInvoiceAuthorityCopy": {
+      "module": "submissions",
+      "method": "getAuthorityCopy",
+      "template": "$result = $yona->submissions->getAuthorityCopy({{path:id}});"
+    },
+    "getInvoiceListSummary": {
+      "module": "invoices",
+      "method": "getSummary",
+      "template": "$result = $yona->invoices->getSummary({{query}});"
+    },
+    "getInvoiceOverview": {
+      "module": "invoices",
+      "method": "getOverview",
+      "template": "$result = $yona->invoices->getOverview({{query}});"
+    },
+    "getInvoiceReferenceList": {
+      "module": "reference",
+      "method": "getResource",
+      "template": "$result = $yona->reference->getResource({{path:type}});"
+    },
+    "getInvoiceSettings": {
+      "module": "invoiceSettings",
+      "method": "get",
+      "template": "$result = $yona->invoiceSettings->get();"
+    },
+    "getInvoiceStatistics": {
+      "module": "invoices",
+      "method": "getStatistics",
+      "template": "$result = $yona->invoices->getStatistics({{query}});"
+    },
+    "getInvoiceStatus": {
+      "module": "submissions",
+      "method": "getStatus",
+      "template": "$result = $yona->submissions->getStatus({{path:id}});"
+    },
+    "getIssuedHistoryInvoice": {
+      "module": "issuedHistory",
+      "method": "get",
+      "template": "$result = $yona->issuedHistory->get({{path:id}});"
+    },
+    "getItem": {
+      "module": "items",
+      "method": "get",
+      "template": "$result = $yona->items->get({{path:id}});"
+    },
+    "getLedgerEntry": {
+      "module": "billing.transactions",
+      "method": "get",
+      "template": "$result = $yona->billing->transactions->get({{path:id}});"
+    },
+    "getOrganization": {
+      "module": "organization",
+      "method": "get",
+      "template": "$result = $yona->organization->get({{path:orgId}});"
+    },
+    "getOrganizationReadiness": {
+      "module": "organization",
+      "method": "getReadiness",
+      "template": "$result = $yona->organization->getReadiness();"
+    },
+    "getPayment": {
+      "module": "billing.payments",
+      "method": "get",
+      "template": "$result = $yona->billing->payments->get({{path:id}});"
+    },
+    "getSandboxUsage": {
+      "module": "billing.sandbox",
+      "method": "getUsage",
+      "template": "$result = $yona->billing->sandbox->getUsage();"
+    },
+    "getSeller": {
+      "module": "sellers",
+      "method": "get",
+      "template": "$result = $yona->sellers->get({{path:id}});"
+    },
+    "getSellerVerificationStatus": {
+      "module": "sellers",
+      "method": "getVerificationStatus",
+      "template": "$result = $yona->sellers->getVerificationStatus({{path:id}});"
+    },
+    "getSubscription": {
+      "module": "billing.subscriptions",
+      "method": "get",
+      "template": "$result = $yona->billing->subscriptions->get({{path:id}});"
+    },
+    "getTaxConnection": {
+      "module": "taxConnection",
+      "method": "get",
+      "template": "$result = $yona->taxConnection->get();"
+    },
+    "getUsageAnalytics": {
+      "module": "billing.transactions",
+      "method": "getUsageAnalytics",
+      "template": "$result = $yona->billing->transactions->getUsageAnalytics({{query}});"
+    },
+    "getUsageByCostCode": {
+      "module": "billing.transactions",
+      "method": "getUsageByCostCode",
+      "template": "$result = $yona->billing->transactions->getUsageByCostCode({{query}});"
+    },
+    "getWebhookDelivery": {
+      "module": "webhooks.deliveries",
+      "method": "get",
+      "template": "$result = $yona->webhooks->deliveries->get({{path:id}});"
+    },
+    "getWebhookEndpoint": {
+      "module": "webhooks.endpoints",
+      "method": "get",
+      "template": "$result = $yona->webhooks->endpoints->get({{path:id}});"
+    },
+    "getWebhookEvent": {
+      "module": "webhooks.events",
+      "method": "get",
+      "template": "$result = $yona->webhooks->events->get({{path:id}});"
+    },
+    "issueCreditNote": {
+      "module": "invoices",
+      "method": "issueCreditNote",
+      "template": "$result = $yona->invoices->issueCreditNote({{path:id}}, {{body}});"
+    },
+    "issueDebitNote": {
+      "module": "invoices",
+      "method": "issueDebitNote",
+      "template": "$result = $yona->invoices->issueDebitNote({{path:id}}, {{body}});"
+    },
+    "issueInvoice": {
+      "module": "submissions",
+      "method": "issue",
+      "template": "$result = $yona->submissions->issue({{path:id}});"
+    },
+    "listBuyers": {
+      "module": "buyers",
+      "method": "list",
+      "template": "$result = $yona->buyers->list({{query}});"
+    },
+    "listHsCodeCategories": {
+      "module": "reference",
+      "method": "listHsCodeCategories",
+      "template": "$result = $yona->reference->listHsCodeCategories();"
+    },
+    "listHsCodes": {
+      "module": "reference",
+      "method": "listHsCodes",
+      "template": "$result = $yona->reference->listHsCodes({{query}});"
+    },
+    "listInboundHistoryRuns": {
+      "module": "inboundInvoices",
+      "method": "listHistoryRuns",
+      "template": "$result = $yona->inboundInvoices->listHistoryRuns({{query}});"
+    },
+    "listInboundInvoices": {
+      "module": "inboundInvoices",
+      "method": "list",
+      "template": "$result = $yona->inboundInvoices->list({{query}});"
+    },
+    "listInvoiceReferenceLists": {
+      "module": "reference",
+      "method": "listResources",
+      "template": "$result = $yona->reference->listResources();"
+    },
+    "listInvoiceShareLinks": {
+      "module": "shareLinks",
+      "method": "list",
+      "template": "$result = $yona->shareLinks->list({{path:id}});"
+    },
+    "listInvoices": {
+      "module": "invoices",
+      "method": "list",
+      "template": "$result = $yona->invoices->list({{query}});"
+    },
+    "listIssuedHistory": {
+      "module": "issuedHistory",
+      "method": "list",
+      "template": "$result = $yona->issuedHistory->list({{query}});"
+    },
+    "listItems": {
+      "module": "items",
+      "method": "list",
+      "template": "$result = $yona->items->list({{query}});"
+    },
+    "listLedgerEntries": {
+      "module": "billing.transactions",
+      "method": "list",
+      "template": "$result = $yona->billing->transactions->list({{query}});"
+    },
+    "listPayments": {
+      "module": "billing.payments",
+      "method": "list",
+      "template": "$result = $yona->billing->payments->list({{query}});"
+    },
+    "listSandboxTransactions": {
+      "module": "billing.sandbox",
+      "method": "listTransactions",
+      "template": "$result = $yona->billing->sandbox->listTransactions({{query}});"
+    },
+    "listSellers": {
+      "module": "sellers",
+      "method": "list",
+      "template": "$result = $yona->sellers->list({{query}});"
+    },
+    "listSubscriptionRenewals": {
+      "module": "billing.subscriptions",
+      "method": "listRenewals",
+      "template": "$result = $yona->billing->subscriptions->listRenewals({{query}});"
+    },
+    "listSubscriptions": {
+      "module": "billing.subscriptions",
+      "method": "list",
+      "template": "$result = $yona->billing->subscriptions->list({{query}});"
+    },
+    "listUsedItemCodes": {
+      "module": "items",
+      "method": "listUsedCodes",
+      "template": "$result = $yona->items->listUsedCodes({{query}});"
+    },
+    "listWebhookDeliveries": {
+      "module": "webhooks.deliveries",
+      "method": "list",
+      "template": "$result = $yona->webhooks->deliveries->list({{query}});"
+    },
+    "listWebhookEndpoints": {
+      "module": "webhooks.endpoints",
+      "method": "list",
+      "template": "$result = $yona->webhooks->endpoints->list();"
+    },
+    "listWebhookEventTypes": {
+      "module": "webhooks.eventTypes",
+      "method": "list",
+      "template": "$result = $yona->webhooks->eventTypes->list();"
+    },
+    "listWebhookEvents": {
+      "module": "webhooks.events",
+      "method": "list",
+      "template": "$result = $yona->webhooks->events->list({{query}});"
+    },
+    "loadOlderInboundInvoices": {
+      "module": "inboundInvoices",
+      "method": "loadOlder",
+      "template": "$result = $yona->inboundInvoices->loadOlder();"
+    },
+    "lookupTaxId": {
+      "module": "reference",
+      "method": "lookupTaxId",
+      "template": "$result = $yona->reference->lookupTaxId({{path:value}}, {{query}});"
+    },
+    "previewSubscriptionPlanChange": {
+      "module": "billing.subscriptions",
+      "method": "previewPlanChange",
+      "template": "$result = $yona->billing->subscriptions->previewPlanChange({{path:id}}, {{query}});"
+    },
+    "queryInvoiceStatus": {
+      "module": "submissions",
+      "method": "queryStatus",
+      "template": "$result = $yona->submissions->queryStatus({{path:id}});"
+    },
+    "recordInvoicePayment": {
+      "module": "submissions",
+      "method": "recordPayment",
+      "template": "$result = $yona->submissions->recordPayment({{path:id}}, {{body}});"
+    },
+    "redeliverWebhookDelivery": {
+      "module": "webhooks.deliveries",
+      "method": "redeliver",
+      "template": "$result = $yona->webhooks->deliveries->redeliver({{path:id}});"
+    },
+    "redeliverWebhookEvent": {
+      "module": "webhooks.events",
+      "method": "redeliver",
+      "template": "$result = $yona->webhooks->events->redeliver({{path:id}}, {{body}});"
+    },
+    "renumberInvoice": {
+      "module": "submissions",
+      "method": "renumber",
+      "template": "$result = $yona->submissions->renumber({{path:id}});"
+    },
+    "reopenInvoice": {
+      "module": "invoices",
+      "method": "reopen",
+      "template": "$result = $yona->invoices->reopen({{path:id}});"
+    },
+    "retryInvoiceSubmission": {
+      "module": "submissions",
+      "method": "retry",
+      "template": "$result = $yona->submissions->retry({{path:id}});"
+    },
+    "reviseInvoice": {
+      "module": "invoices",
+      "method": "revise",
+      "template": "$result = $yona->invoices->revise({{path:id}});"
+    },
+    "revokeInvoiceShareLink": {
+      "module": "shareLinks",
+      "method": "revoke",
+      "template": "$result = $yona->shareLinks->revoke({{path:id}}, {{path:linkId}});"
+    },
+    "searchBuyers": {
+      "module": "buyers",
+      "method": "search",
+      "template": "$result = $yona->buyers->search({{query}});"
+    },
+    "searchSellers": {
+      "module": "sellers",
+      "method": "search",
+      "template": "$result = $yona->sellers->search({{query}});"
+    },
+    "sendInvoice": {
+      "module": "output",
+      "method": "send",
+      "template": "$result = $yona->output->send({{path:id}}, {{body}});"
+    },
+    "submitInvoice": {
+      "module": "submissions",
+      "method": "submit",
+      "template": "$result = $yona->submissions->submit({{path:id}}, {{query}});"
+    },
+    "testWebhookEndpoint": {
+      "module": "webhooks.endpoints",
+      "method": "test",
+      "template": "$result = $yona->webhooks->endpoints->test({{path:id}}, {{body}});"
+    },
+    "unarchiveItem": {
+      "module": "items",
+      "method": "unarchive",
+      "template": "$result = $yona->items->unarchive({{path:id}});"
+    },
+    "updateBuyer": {
+      "module": "buyers",
+      "method": "update",
+      "template": "$result = $yona->buyers->update({{path:id}}, {{body}});"
+    },
+    "updateInvoice": {
+      "module": "invoices",
+      "method": "update",
+      "template": "$result = $yona->invoices->update({{path:id}}, {{body}});"
+    },
+    "updateItem": {
+      "module": "items",
+      "method": "update",
+      "template": "$result = $yona->items->update({{path:id}}, {{body}});"
+    },
+    "validateInvoice": {
+      "module": "reference",
+      "method": "validateInvoice",
+      "template": "$result = $yona->reference->validateInvoice({{body}});"
+    },
+    "verifyBuyerTaxNumber": {
+      "module": "buyers",
+      "method": "verifyTaxNumber",
+      "template": "$result = $yona->buyers->verifyTaxNumber({{path:id}});"
+    }
+  }
+}
