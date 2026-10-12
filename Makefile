@@ -1,4 +1,4 @@
-.PHONY: install sync sync-check test lint fix examples guides guides-check operations operations-check clean
+.PHONY: install sync sync-check test lint fix examples guides guides-check operations operations-check clean release
 
 COMPOSER ?= composer
 PHP ?= php
@@ -40,3 +40,6 @@ operations-check:   ## fail when guides/operations.json is stale (its compile ch
 
 clean:
 	rm -rf .phpunit.cache .php-cs-fixer.cache coverage coverage.xml
+
+release:            ## prepare a release: BUMP=patch|minor|major|X.Y.Z (default: from the commits), DRY=1 to only show the plan
+	node scripts/release.mjs $(BUMP) $(if $(DRY),--dry-run)
