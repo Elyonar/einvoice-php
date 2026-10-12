@@ -162,7 +162,7 @@ final class HttpClientTest extends TestCase
         self::assertSame('application/json', $req->getHeaderLine('Content-Type'));
         self::assertSame('application/json', $req->getHeaderLine('Accept'));
         self::assertSame('1', $req->getHeaderLine('X-Extra'));
-        self::assertSame('einvoice-php/0.1.0', $req->getHeaderLine('User-Agent'));
+        self::assertSame('einvoice-php/' . Version::VERSION, $req->getHeaderLine('User-Agent'));
         self::assertSame(Version::USER_AGENT, $req->getHeaderLine('User-Agent'));
         self::assertSame('{"name":"A"}', (string) $req->getBody());
     }
