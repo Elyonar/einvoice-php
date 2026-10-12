@@ -237,6 +237,7 @@ make test        # PHPUnit
 make lint        # phpstan level 8 + php-cs-fixer
 make examples    # run the examples against your sandbox key (YONA_API_KEY)
 make sync        # regenerate the typed models from the API definition
+make release     # prepare a release: version, CHANGELOG, guides, checks (DRY=1 to preview)
 ```
 
 ## License
