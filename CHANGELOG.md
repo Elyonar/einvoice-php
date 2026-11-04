@@ -8,11 +8,34 @@ einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release
 
 ## Unreleased
 
+In line with `@useyona/einvoice-js` 0.9.0: the 134 operations an API key may call, 13 documented
+exclusions.
+
 ### Added
 
+- `$client->collections`: the bank accounts that collect an invoice's payment and what they received (accounts:
+  list, create, get, status, deactivate; the fee quote; payments; buyer credits; exceptions: list,
+  resolve; settlement accounts; banks). They answer only where collections are switched on for the
+  key's mode; elsewhere 409 `BIZ120`.
+- `$client->billing->usage` (`getInvoices`, `quoteOverage`), `$client->billing->plans` (`getRecommendation`), `$client->billing->partner` (`get`, `getOffer`, `quoteSeat`, `quoteBasket`, `quotePlanChange`), and `$client->billing->subscriptions->getDealOffer()` and `quoteSubOrgSlot()`. Answers that can be empty are `null`.
+- `$client->taxConnection->get()` takes the query `['identifier' => 'true']` / `['fresh' => 'true']`: which number the tax authority holds for the organisation, its TIN or its 13-digit Tax ID. `get($options)` is unchanged.
 - `guides/operations.json` (`make operations`): per API operation, the method that calls it and a
   call template for the portal's API playground, derived from the same recorded calls as the parity
   test; `make test` compiles every template (`php -l` and phpstan) and fails when the file is stale.
+
+### Changed
+
+- **Breaking:** the generated models follow the API. Plan-change quotes carry `daysLeft` and `periodDays`,
+  and no longer `creditMinor`, `windowsInPeriod` or `windowsUnissued`. Payment, ledger and plan-change
+  reason enums gain values. The organisation gains `einvoicingTaxId`, the billing account `plan`, invoices
+  `createdViaClientId`, and the tax connection `einvoicingIdentifier`, `identifierSource` and
+  `identifierNextAction`.
+- The payments service's reads (bank account, transfers) are excluded until payments launches in
+  production.
+
+### Fixed
+
+- `make sync` regenerates the models on macOS (the einvoice-js checkout is resolved with `pwd -P`).
 
 ## 0.1.0 (2026-10-07)
 
