@@ -22,6 +22,11 @@ final class ExcludedOperations
         ['method' => 'GET', 'path' => '/i/v1/buyers/setup', 'reason' => 'Dashboard form metadata; the code lists are reference.getResource.'],
         ['method' => 'GET', 'path' => '/i/v1/invoices/setup', 'reason' => 'Dashboard form metadata; the code lists are reference.getResource, the connection taxConnection.get.'],
         ['method' => 'GET', 'path' => '/b/v1/setup', 'reason' => 'Dashboard billing overview in one call; its parts are billing.accounts/subscriptions/sandbox.'],
+        ['method' => 'GET', 'path' => '/p/v1/accounts/current', 'reason' => 'Payments is not live in production yet (owner, 3 Nov 2026): a method joins with its launch.'],
+        ['method' => 'GET', 'path' => '/p/v1/accounts/current/transactions', 'reason' => 'Payments is not live in production yet (owner, 3 Nov 2026): a method joins with its launch.'],
+        ['method' => 'GET', 'path' => '/p/v1/accounts/current/transactions/{id}', 'reason' => 'Payments is not live in production yet (owner, 3 Nov 2026): a method joins with its launch.'],
+        ['method' => 'GET', 'path' => '/p/v1/transfers', 'reason' => 'Payments is not live in production yet (owner, 3 Nov 2026): a method joins with its launch.'],
+        ['method' => 'GET', 'path' => '/p/v1/transfers/{id}', 'reason' => 'Payments is not live in production yet (owner, 3 Nov 2026): a method joins with its launch.'],
     ];
 
     private function __construct()

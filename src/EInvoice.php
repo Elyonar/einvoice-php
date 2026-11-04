@@ -7,6 +7,7 @@ namespace Useyona\EInvoice;
 use Useyona\EInvoice\Http\HttpClient;
 use Useyona\EInvoice\Service\BillingService;
 use Useyona\EInvoice\Service\BuyersService;
+use Useyona\EInvoice\Service\CollectionsService;
 use Useyona\EInvoice\Service\InboundInvoicesService;
 use Useyona\EInvoice\Service\InvoiceSettingsService;
 use Useyona\EInvoice\Service\InvoicesService;
@@ -23,8 +24,8 @@ use Useyona\EInvoice\Service\WebhooksService;
 
 /**
  * The client of the Yona e-invoicing API. It covers what an API key may call: invoicing, buyers,
- * items, received invoices, billing reads and webhooks. Users, invitations, roles, API keys and
- * organisation management are done in the dashboard.
+ * items, received invoices, billing reads, collections and webhooks. Users, invitations, roles, API
+ * keys and organisation management are done in the dashboard.
  *
  * The key decides the mode: `sk_test_…` is sandbox and `sk_live_…` is live, on the same host.
  *
@@ -66,8 +67,10 @@ final class EInvoice
     public readonly TaxConnectionService $taxConnection;
     /** The key's organisation (read-only). */
     public readonly OrganizationService $organization;
-    /** Billing reads: account, ledger, statements, subscriptions, payments, sandbox allowance. */
+    /** Billing reads: account, ledger, statements, subscriptions, payments, sandbox allowance, invoice usage, plans, partner. */
     public readonly BillingService $billing;
+    /** Collections: accounts that collect invoice payments, the payments, buyer credit, exceptions, settlement. */
+    public readonly CollectionsService $collections;
     /** Webhook endpoints (read, test), deliveries, events and the event catalogue. */
     public readonly WebhooksService $webhooks;
     /** The transport, for advanced use. */
@@ -97,6 +100,7 @@ final class EInvoice
         $this->taxConnection = new TaxConnectionService($this->http);
         $this->organization = new OrganizationService($this->http);
         $this->billing = new BillingService($this->http);
+        $this->collections = new CollectionsService($this->http);
         $this->webhooks = new WebhooksService($this->http);
     }
 

@@ -1,6 +1,6 @@
 {
   "sdkVersion": "0.1.0",
-  "generatedFrom": "cd9245b",
+  "generatedFrom": "b42bb6c",
   "install": "composer require useyona/einvoice-php",
   "quickStart": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_\n\n$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
   "recipes": [
@@ -86,7 +86,7 @@
           "title": "Download the PDF",
           "text": "The PDF bytes come back as a string in a BinaryResponse. getDownloadLink returns a short-lived URL instead.",
           "sdk": "$pdf = $yona->output->downloadPdf($draft['id']);\n$file = sys_get_temp_dir() . '/' . ($pdf->fileName ?? \"{$draft['invoiceNumber']}.pdf\");\nfile_put_contents($file, $pdf->data);\necho 'pdf ', $file, ' ', strlen($pdf->data), \" bytes\\n\";",
-          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}/download\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/{id}/download\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\"",
           "operationId": "downloadInvoice"
         },
         {
