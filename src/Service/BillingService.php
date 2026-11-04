@@ -21,6 +21,12 @@ final class BillingService
     public readonly SubscriptionsService $subscriptions;
     /** The credit ledger and usage. */
     public readonly TransactionsService $transactions;
+    /** This month's invoice usage and overage quotes. */
+    public readonly UsageService $usage;
+    /** The plan catalogue's recommendation. */
+    public readonly PlansService $plans;
+    /** The partner account and its quotes (read-only). */
+    public readonly PartnerService $partner;
 
     public function __construct(HttpClient $http)
     {
@@ -30,5 +36,8 @@ final class BillingService
         $this->statements = new StatementsService($http);
         $this->subscriptions = new SubscriptionsService($http);
         $this->transactions = new TransactionsService($http);
+        $this->usage = new UsageService($http);
+        $this->plans = new PlansService($http);
+        $this->partner = new PartnerService($http);
     }
 }

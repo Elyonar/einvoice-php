@@ -1,8 +1,8 @@
 # useyona/einvoice-php
 
 The official PHP SDK for the [Yona](https://useyona.com) e-invoicing API: create and manage
-invoices, report them to the tax authority, and work with buyers, items, received invoices, billing
-and webhooks. PHP 8.1+, built on PSR-18, so it works with the HTTP client you already have.
+invoices, report them to the tax authority, and work with buyers, items, received invoices, billing,
+collections and webhooks. PHP 8.1+, built on PSR-18, so it works with the HTTP client you already have.
 
 Every Yona SDK has the same modules and methods; in PHP the names are `camelCase`
 (`$client->invoices->issueCreditNote()`).
@@ -187,7 +187,8 @@ and retries, sandbox and live, received invoices. Run them against your sandbox 
 
 Every method takes an optional trailing `?RequestOptions $options`. Request and query arrays have
 shapes named after the operation (`CreateInvoiceBody`, `ListInvoicesQuery`) in
-`Useyona\EInvoice\Generated\Types`.
+`Useyona\EInvoice\Generated\Types`. 122 methods in 27 modules; a test proves every operation an API
+key may call is a method or a documented exclusion (`ExcludedOperations`).
 
 | Module | Methods |
 |---|---|
@@ -199,7 +200,7 @@ shapes named after the operation (`CreateInvoiceBody`, `ListInvoicesQuery`) in
 | `$client->reference` | `listHsCodes`, `listHsCodeCategories`, `listResources`, `getResource`, `lookupTaxId`, `validateInvoice` |
 | `$client->buyers` | `create`, `list`, `get`, `update`, `delete`, `bulkDelete`, `verifyTaxNumber`, `getVerificationStatus`, `search`, `checkReachability`, `checkWithTaxAuthority` |
 | `$client->sellers` | `list`, `get`, `getVerificationStatus`, `search` |
-| `$client->inboundInvoices` | `list`, `get`, `getAnalytics`, `listHistoryRuns`, `getHistoryRun` |
+| `$client->inboundInvoices` | `list`, `get`, `getAnalytics`, `listHistoryRuns`, `getHistoryRun`, `loadOlder` |
 | `$client->issuedHistory` | `list`, `get`, `downloadPdf` |
 | `$client->invoiceSettings`, `$client->taxConnection` | `get` |
 | `$client->organization` | `get`, `getReadiness` |
@@ -207,16 +208,32 @@ shapes named after the operation (`CreateInvoiceBody`, `ListInvoicesQuery`) in
 | `$client->billing->payments` | `list`, `get` |
 | `$client->billing->sandbox` | `listTransactions`, `getUsage` |
 | `$client->billing->statements` | `get` |
-| `$client->billing->subscriptions` | `getActive`, `list`, `get`, `listRenewals`, `previewPlanChange` |
+| `$client->billing->subscriptions` | `getActive`, `list`, `get`, `listRenewals`, `previewPlanChange`, `getDealOffer`, `quoteSubOrgSlot` |
 | `$client->billing->transactions` | `list`, `get`, `getUsageAnalytics`, `getUsageByCostCode` |
+| `$client->billing->usage` | `getInvoices`, `quoteOverage` |
+| `$client->billing->plans` | `getRecommendation` |
+| `$client->billing->partner` | `get`, `getOffer`, `quoteSeat`, `quoteBasket`, `quotePlanChange` |
+| `$client->collections` | `listAccounts`, `createAccount`, `getAccount`, `getAccountStatus`, `deactivateAccount`, `quoteFee`, `listPayments`, `listBuyerCredits`, `listExceptions`, `resolveException`, `listSettlementAccounts`, `getSettlementAccount`, `listBanks` |
 | `$client->webhooks->endpoints` | `list`, `get`, `test` |
 | `$client->webhooks->deliveries` | `list`, `get`, `redeliver` |
 | `$client->webhooks->events` | `list`, `get`, `redeliver` |
 | `$client->webhooks->eventTypes` | `list` |
 | `Webhooks` | `verifyWebhook`, `signWebhookPayload`, `computeWebhookSignature`, `parseSignatureHeader` |
 
+`$client->taxConnection->get(['identifier' => 'true'])` also says which number the tax authority
+holds for the organisation (its TIN or its 13-digit Tax ID): `einvoicingIdentifier`, or
+`identifierNextAction` when it holds neither. `['fresh' => 'true']` asks the authority again. Both
+are rationed; pass them only when you need that answer. `get($options)` still works.
+
+`billing->plans->getRecommendation()`, `billing->usage->getInvoices()`,
+`billing->partner->getOffer()` and `billing->subscriptions->getDealOffer()` return `null` when there
+is nothing to show. `$client->collections` answers only where collections are switched on for the
+key's mode; elsewhere every call is 409 `BIZ120` (`ConflictException`). Its writes take no
+`Idempotency-Key` and are not retried.
+
 Account management (users, roles, API keys, purchases, webhook endpoint settings) is done in the
-Yona dashboard, not through the API key.
+Yona dashboard, not through the API key. The payments service's bank-account and transfer reads join
+the SDK when payments launches in production.
 
 ## Configuration
 

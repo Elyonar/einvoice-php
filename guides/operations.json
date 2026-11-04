@@ -2,7 +2,7 @@
   "language": "php",
   "package": "useyona/einvoice-php",
   "sdkVersion": "0.1.0",
-  "generatedFrom": "d7dc73a",
+  "generatedFrom": "b42bb6c",
   "setup": "<?php\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
   "literal": {
     "string": "single",
@@ -54,6 +54,11 @@
       "method": "create",
       "template": "$result = $yona->buyers->create({{body}});"
     },
+    "createCollectionAccount": {
+      "module": "collections",
+      "method": "createAccount",
+      "template": "$result = $yona->collections->createAccount({{body}});"
+    },
     "createInvoice": {
       "module": "invoices",
       "method": "create",
@@ -68,6 +73,11 @@
       "module": "items",
       "method": "create",
       "template": "$result = $yona->items->create({{body}});"
+    },
+    "deactivateCollectionAccount": {
+      "module": "collections",
+      "method": "deactivateAccount",
+      "template": "$result = $yona->collections->deactivateAccount({{path:id}}, {{body}});"
     },
     "deleteBuyer": {
       "module": "buyers",
@@ -129,6 +139,26 @@
       "method": "getVerificationStatus",
       "template": "$result = $yona->buyers->getVerificationStatus({{path:id}});"
     },
+    "getCollectionAccount": {
+      "module": "collections",
+      "method": "getAccount",
+      "template": "$result = $yona->collections->getAccount({{path:id}});"
+    },
+    "getCollectionAccountStatus": {
+      "module": "collections",
+      "method": "getAccountStatus",
+      "template": "$result = $yona->collections->getAccountStatus({{path:id}});"
+    },
+    "getCollectionSettlementAccount": {
+      "module": "collections",
+      "method": "getSettlementAccount",
+      "template": "$result = $yona->collections->getSettlementAccount({{path:sellerId}});"
+    },
+    "getDealOffer": {
+      "module": "billing.subscriptions",
+      "method": "getDealOffer",
+      "template": "$result = $yona->billing->subscriptions->getDealOffer();"
+    },
     "getInboundHistoryRun": {
       "module": "inboundInvoices",
       "method": "getHistoryRun",
@@ -184,6 +214,11 @@
       "method": "getStatus",
       "template": "$result = $yona->submissions->getStatus({{path:id}});"
     },
+    "getInvoiceUsage": {
+      "module": "billing.usage",
+      "method": "getInvoices",
+      "template": "$result = $yona->billing->usage->getInvoices();"
+    },
     "getIssuedHistoryInvoice": {
       "module": "issuedHistory",
       "method": "get",
@@ -209,10 +244,45 @@
       "method": "getReadiness",
       "template": "$result = $yona->organization->getReadiness();"
     },
+    "getOverageQuote": {
+      "module": "billing.usage",
+      "method": "quoteOverage",
+      "template": "$result = $yona->billing->usage->quoteOverage();"
+    },
+    "getPartner": {
+      "module": "billing.partner",
+      "method": "get",
+      "template": "$result = $yona->billing->partner->get();"
+    },
+    "getPartnerBasketQuote": {
+      "module": "billing.partner",
+      "method": "quoteBasket",
+      "template": "$result = $yona->billing->partner->quoteBasket({{query}});"
+    },
+    "getPartnerOffer": {
+      "module": "billing.partner",
+      "method": "getOffer",
+      "template": "$result = $yona->billing->partner->getOffer();"
+    },
+    "getPartnerPlanChangeQuote": {
+      "module": "billing.partner",
+      "method": "quotePlanChange",
+      "template": "$result = $yona->billing->partner->quotePlanChange({{path:organizationId}}, {{query}});"
+    },
+    "getPartnerSeatQuote": {
+      "module": "billing.partner",
+      "method": "quoteSeat",
+      "template": "$result = $yona->billing->partner->quoteSeat({{query}});"
+    },
     "getPayment": {
       "module": "billing.payments",
       "method": "get",
       "template": "$result = $yona->billing->payments->get({{path:id}});"
+    },
+    "getPlanRecommendation": {
+      "module": "billing.plans",
+      "method": "getRecommendation",
+      "template": "$result = $yona->billing->plans->getRecommendation();"
     },
     "getSandboxUsage": {
       "module": "billing.sandbox",
@@ -229,6 +299,11 @@
       "method": "getVerificationStatus",
       "template": "$result = $yona->sellers->getVerificationStatus({{path:id}});"
     },
+    "getSubOrgSlotQuote": {
+      "module": "billing.subscriptions",
+      "method": "quoteSubOrgSlot",
+      "template": "$result = $yona->billing->subscriptions->quoteSubOrgSlot();"
+    },
     "getSubscription": {
       "module": "billing.subscriptions",
       "method": "get",
@@ -237,7 +312,7 @@
     "getTaxConnection": {
       "module": "taxConnection",
       "method": "get",
-      "template": "$result = $yona->taxConnection->get();"
+      "template": "$result = $yona->taxConnection->get({{query}});"
     },
     "getUsageAnalytics": {
       "module": "billing.transactions",
@@ -283,6 +358,36 @@
       "module": "buyers",
       "method": "list",
       "template": "$result = $yona->buyers->list({{query}});"
+    },
+    "listCollectionAccounts": {
+      "module": "collections",
+      "method": "listAccounts",
+      "template": "$result = $yona->collections->listAccounts({{query}});"
+    },
+    "listCollectionBanks": {
+      "module": "collections",
+      "method": "listBanks",
+      "template": "$result = $yona->collections->listBanks({{query}});"
+    },
+    "listCollectionBuyerCredits": {
+      "module": "collections",
+      "method": "listBuyerCredits",
+      "template": "$result = $yona->collections->listBuyerCredits({{query}});"
+    },
+    "listCollectionExceptions": {
+      "module": "collections",
+      "method": "listExceptions",
+      "template": "$result = $yona->collections->listExceptions({{query}});"
+    },
+    "listCollectionPayments": {
+      "module": "collections",
+      "method": "listPayments",
+      "template": "$result = $yona->collections->listPayments({{query}});"
+    },
+    "listCollectionSettlementAccounts": {
+      "module": "collections",
+      "method": "listSettlementAccounts",
+      "template": "$result = $yona->collections->listSettlementAccounts({{query}});"
     },
     "listHsCodeCategories": {
       "module": "reference",
@@ -404,6 +509,11 @@
       "method": "queryStatus",
       "template": "$result = $yona->submissions->queryStatus({{path:id}});"
     },
+    "quoteCollectionFee": {
+      "module": "collections",
+      "method": "quoteFee",
+      "template": "$result = $yona->collections->quoteFee({{query}});"
+    },
     "recordInvoicePayment": {
       "module": "submissions",
       "method": "recordPayment",
@@ -428,6 +538,11 @@
       "module": "invoices",
       "method": "reopen",
       "template": "$result = $yona->invoices->reopen({{path:id}});"
+    },
+    "resolveCollectionException": {
+      "module": "collections",
+      "method": "resolveException",
+      "template": "$result = $yona->collections->resolveException({{path:paymentId}}, {{body}});"
     },
     "retryInvoiceSubmission": {
       "module": "submissions",

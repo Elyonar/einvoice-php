@@ -125,6 +125,62 @@ final class EInvoiceTest extends TestCase
         self::assertSame('application/json', $fake->last()->getHeaderLine('Content-Type'));
     }
 
+    public function testTaxConnectionGetKeepsTheOptionsOnlyCallOf01AndTakesTheR151Query(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok(['state' => 'connected'])]);
+        $yona = Responses::client($fake);
+        $options = new RequestOptions(headers: ['X-Probe' => 'p']);
+        $yona->taxConnection->get($options);
+        self::assertSame('', $fake->requests[0]->getUri()->getQuery());
+        self::assertSame('p', $fake->requests[0]->getHeaderLine('X-Probe'));
+        $yona->taxConnection->get(['identifier' => 'true'], $options);
+        self::assertSame('identifier=true', $fake->requests[1]->getUri()->getQuery());
+        self::assertSame('p', $fake->requests[1]->getHeaderLine('X-Probe'));
+        $yona->taxConnection->get(['fresh' => 'true']);
+        self::assertSame('fresh=true', $fake->requests[2]->getUri()->getQuery());
+        self::assertSame(['state' => 'connected'], $yona->taxConnection->get());
+        self::assertSame('/i/v1/tax-connection', $fake->requests[3]->getUri()->getPath());
+        self::assertSame('', $fake->requests[3]->getUri()->getQuery());
+    }
+
+    public function testHasNoPaymentsServiceMethodsUntilPaymentsLaunchesInProduction(): void
+    {
+        $yona = new EInvoice(['api_key' => Responses::TEST_KEY]);
+        foreach (['bankAccount', 'transfers'] as $gone) {
+            self::assertFalse(property_exists($yona, $gone), $gone);
+        }
+        $paths = array_filter(array_column(ExcludedOperations::OPERATIONS, 'path'), fn (string $p): bool => str_starts_with($p, '/p/'));
+        self::assertCount(5, $paths);
+    }
+
+    public function testNullableBillingAnswersComeBackAsNull(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok(null)]);
+        $billing = Responses::client($fake)->billing;
+        self::assertNull($billing->plans->getRecommendation());
+        self::assertNull($billing->usage->getInvoices());
+        self::assertNull($billing->partner->getOffer());
+        self::assertNull($billing->subscriptions->getDealOffer());
+    }
+
+    public function testCollectionsWritesCarryNoIdempotencyKeyAndPlainListsAreArrays(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok([['code' => '058']])]);
+        $collections = Responses::client($fake)->collections;
+        self::assertSame([['code' => '058']], $collections->listBanks(['jurisdiction' => 'NG']));
+        self::assertSame('jurisdiction=NG', $fake->last()->getUri()->getQuery());
+        self::assertSame([['code' => '058']], $collections->quoteFee(['kind' => 'dynamic', 'amountMinor' => 150000]));
+        self::assertSame('kind=dynamic&amountMinor=150000', $fake->last()->getUri()->getQuery());
+        $collections->createAccount(['kind' => 'dynamic', 'reference' => 'r1', 'invoiceId' => 'inv']);
+        $collections->deactivateAccount('ca/1', ['reason' => 'paid']);
+        $collections->resolveException('pay1', ['resolution' => 'refund_recorded_externally']);
+        foreach (array_slice($fake->requests, 2) as $req) {
+            self::assertSame('POST', $req->getMethod());
+            self::assertFalse($req->hasHeader('Idempotency-Key'));
+        }
+        self::assertSame('/b/v1/collection/accounts/ca%2F1/deactivate', $fake->requests[3]->getUri()->getPath());
+    }
+
     public function testBillingAccountsGetStatsDefaultsToTheCallersOwnAccount(): void
     {
         $fake = new FakeHttpClient([Responses::ok([])]);

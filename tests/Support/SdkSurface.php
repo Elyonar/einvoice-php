@@ -128,6 +128,28 @@ final class SdkSurface
     }
 
     /**
+     * The type a parameter is probed as: its named type, or `array` for the one union the SDK has, a
+     * query that also takes the options in first place (`taxConnection.get(array|RequestOptions|null)`,
+     * which keeps the options-only call of 0.1 working).
+     */
+    private static function probeType(\ReflectionParameter $p): ?string
+    {
+        $type = $p->getType();
+        if ($type instanceof \ReflectionNamedType) {
+            return $type->getName();
+        }
+        if ($type instanceof \ReflectionUnionType) {
+            $names = array_map(fn (\ReflectionType $t): string => $t instanceof \ReflectionNamedType ? $t->getName() : '', $type->getTypes());
+            sort($names);
+            if ($names === [RequestOptions::class, 'array', 'null']) {
+                return 'array';
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * The snapshot operation a concrete request matches: the template with the fewest placeholders wins.
      *
      * @template T of array{method: string, path: string}
@@ -168,21 +190,21 @@ final class SdkSurface
         $args = [];
         $probes = [];
         foreach ($method->getParameters() as $i => $p) {
-            $type = $p->getType();
-            if (!$type instanceof \ReflectionNamedType) {
+            $type = self::probeType($p);
+            if ($type === null) {
                 throw new \LogicException("{$module}.{$method->getName()}(\${$p->getName()}) has no single named type");
             }
-            if ($type->getName() === RequestOptions::class) {
+            if ($type === RequestOptions::class) {
                 break;
             }
-            if ($type->getName() === 'string') {
+            if ($type === 'string') {
                 $args[] = "zprobe{$i}z";
-            } elseif ($type->getName() === 'array') {
+            } elseif ($type === 'array') {
                 $args[] = ["zprobe{$i}z" => 'v'];
             } else {
-                throw new \LogicException("{$module}.{$method->getName()}: no probe for a {$type->getName()} parameter");
+                throw new \LogicException("{$module}.{$method->getName()}: no probe for a {$type} parameter");
             }
-            $probes[] = [$i, $type->getName(), $p->isOptional()];
+            $probes[] = [$i, $type, $p->isOptional()];
         }
         $fake = new FakeHttpClient([Responses::ok([])]);
         $method->invokeArgs(self::services(Responses::client($fake))[$module], $args);
