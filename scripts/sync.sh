@@ -24,7 +24,9 @@ if [ -n "${EINVOICE_JS_DIR:-}" ]; then
     SRC="$(cd "$EINVOICE_JS_DIR" && pwd)"
     echo "sync: using local einvoice-js at $SRC"
 else
-    SRC="$(mktemp -d)"
+    # The physical path: on macOS mktemp answers /var/…, a symlink to /private/var/…, and
+    # gen-types.mjs runs only when its own resolved path is the one node was given.
+    SRC="$(cd "$(mktemp -d)" && pwd -P)"
     trap 'rm -rf "$SRC"' EXIT
     echo "sync: fetching einvoice-js $EINVOICE_JS_REF"
     # A shallow fetch of one ref: a SHA, a tag or a branch all work (GitHub serves reachable SHAs).
