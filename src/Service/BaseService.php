@@ -39,6 +39,24 @@ abstract class BaseService
     }
 
     /**
+     * `ids` as the API reads it: one comma-separated value. A list is joined (the transport would
+     * otherwise repeat the key, which the API refuses with 400 `VAL001`); a string, or a query
+     * without `ids`, is passed through untouched.
+     *
+     * @param array<string, mixed>|null $query
+     *
+     * @return array<string, mixed>|null
+     */
+    protected static function withJoinedIds(?array $query): ?array
+    {
+        if ($query !== null && is_array($query['ids'] ?? null)) {
+            $query['ids'] = implode(',', array_map('strval', $query['ids']));
+        }
+
+        return $query;
+    }
+
+    /**
      * One call; returns `data`.
      *
      * @param CallSpec $spec

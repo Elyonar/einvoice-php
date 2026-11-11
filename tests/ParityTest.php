@@ -52,7 +52,7 @@ final class ParityTest extends TestCase
 
     /**
      * The recorded calls, made on first use from inside a test (not in setUpBeforeClass) so the
-     * 122 service methods they exercise count towards coverage.
+     * 126 service methods they exercise count towards coverage.
      *
      * @return list<Call>
      */
@@ -174,7 +174,7 @@ final class ParityTest extends TestCase
 
     public function testTheMethodCountIsTheDocumentedSurface(): void
     {
-        self::assertCount(122, self::calls(), '122 methods in 27 modules (update CLAUDE.md and README when this changes)');
+        self::assertCount(126, self::calls(), '126 methods in 27 modules (update CLAUDE.md and README when this changes)');
         $modules = array_unique(array_map(fn (array $c): string => substr($c['label'], 0, (int) strrpos($c['label'], '.')), self::calls()));
         self::assertCount(27, $modules);
     }

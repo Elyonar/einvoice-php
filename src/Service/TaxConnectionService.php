@@ -11,6 +11,9 @@ use Useyona\EInvoice\RequestOptions;
  *
  * @phpstan-import-type GetTaxConnectionQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type GetTaxConnectionData from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type ListChildTaxConnectionsItem from \Useyona\EInvoice\Generated\Types
+ *
+ * @phpstan-type SubOrganizationTaxConnectionsQuery array{ids: string|list<string>}
  */
 final class TaxConnectionService extends BaseService
 {
@@ -34,5 +37,22 @@ final class TaxConnectionService extends BaseService
         }
 
         return $this->call('GET', '/i/v1/tax-connection', ['query' => $query, 'options' => $options]);
+    }
+
+    /**
+     * For a parent organisation: the state of each named sub-organisation's connection to the tax
+     * authority in the key's mode, and whether a submission would pass (`tax_connection.read`).
+     * `ids` are the ids `organization->listSubOrganizations` answers, as a list or a comma-separated
+     * string: at most 100, each once (400 `VAL001` otherwise). An id that is not one of the
+     * organisation's sub-organisations is left out of the answer. Only the state is shown, never the
+     * sub-organisation's tax id or key.
+     *
+     * @param SubOrganizationTaxConnectionsQuery $query
+     *
+     * @return list<ListChildTaxConnectionsItem>
+     */
+    public function listForSubOrganizations(array $query, ?RequestOptions $options = null): array
+    {
+        return $this->call('GET', '/i/v1/tax-connection/children', ['query' => self::withJoinedIds($query), 'options' => $options]);
     }
 }

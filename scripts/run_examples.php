@@ -19,7 +19,7 @@ namespace Useyona\EInvoice\Scripts;
 const ROOT = __DIR__ . '/..';
 
 /** The example ids, in the order the guides list them. */
-const EXAMPLE_ORDER = ['first-invoice', 'webhooks', 'errors-and-retries', 'sandbox-and-live', 'received-invoices'];
+const EXAMPLE_ORDER = ['first-invoice', 'webhooks', 'errors-and-retries', 'sandbox-and-live', 'received-invoices', 'states-and-lgas', 'sub-organisations'];
 
 /** @return list<string> */
 function exampleIds(): array

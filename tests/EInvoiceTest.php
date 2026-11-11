@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Useyona\EInvoice\BinaryResponse;
 use Useyona\EInvoice\EInvoice;
 use Useyona\EInvoice\Exception\ConfigException;
+use Useyona\EInvoice\Exception\ServerException;
 use Useyona\EInvoice\ExcludedOperations;
 use Useyona\EInvoice\Http\HttpClient;
 use Useyona\EInvoice\Page;
@@ -141,6 +142,99 @@ final class EInvoiceTest extends TestCase
         self::assertSame(['state' => 'connected'], $yona->taxConnection->get());
         self::assertSame('/i/v1/tax-connection', $fake->requests[3]->getUri()->getPath());
         self::assertSame('', $fake->requests[3]->getUri()->getQuery());
+    }
+
+    public function testListsSubOrganisationsAndTheirReadinessAsPagesJoiningAListOfIds(): void
+    {
+        $pagination = ['total' => 2, 'page' => 1, 'pageSize' => 100, 'totalPages' => 1, 'hasNext' => false, 'hasPrevious' => false];
+        $fake = new FakeHttpClient([Responses::ok([['id' => 'c1'], ['id' => 'c2']], ['pagination' => $pagination, 'requestId' => 'r1'])]);
+        $yona = Responses::client($fake);
+        $page = $yona->organization->listSubOrganizations(['search' => 'acme', 'limit' => 50]);
+        self::assertSame([['id' => 'c1'], ['id' => 'c2']], $page->data);
+        self::assertSame($pagination, $page->pagination);
+        self::assertSame('r1', $page->requestId);
+        self::assertSame('GET', $fake->requests[0]->getMethod());
+        self::assertSame('/a/v1/organizations/me/children', $fake->requests[0]->getUri()->getPath());
+        self::assertSame('search=acme&limit=50', $fake->requests[0]->getUri()->getQuery());
+        $yona->organization->listSubOrganizations(['ids' => ['c1', 'c2']]);
+        self::assertSame('ids=c1%2Cc2', $fake->requests[1]->getUri()->getQuery());
+        $yona->organization->listSubOrganizations(['ids' => 'c1,c2']);
+        self::assertSame('ids=c1%2Cc2', $fake->requests[2]->getUri()->getQuery());
+        $yona->organization->listSubOrganizations();
+        self::assertSame('', $fake->requests[3]->getUri()->getQuery());
+        $yona->organization->listSubOrganizationsReadiness(['ids' => ['c1'], 'page' => 2]);
+        self::assertSame('GET', $fake->requests[4]->getMethod());
+        self::assertSame('/a/v1/organizations/me/children/readiness', $fake->requests[4]->getUri()->getPath());
+        self::assertSame('ids=c1&page=2', $fake->requests[4]->getUri()->getQuery());
+    }
+
+    public function testAListOfIdsReachesTheApiAsOneCommaSeparatedValueNotARepeatedKey(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok([['organizationId' => 'a', 'state' => 'connected', 'submissionsAllowed' => true]])]);
+        $connections = Responses::client($fake)->taxConnection->listForSubOrganizations(['ids' => ['a', 'b']]);
+        self::assertSame([['organizationId' => 'a', 'state' => 'connected', 'submissionsAllowed' => true]], $connections);
+        self::assertSame('/i/v1/tax-connection/children', $fake->last()->getUri()->getPath());
+        $pairs = explode('&', $fake->last()->getUri()->getQuery());
+        self::assertSame(['ids=a%2Cb'], $pairs);
+        self::assertSame('a,b', rawurldecode(substr($pairs[0], 4)));
+        // A plain string passes through.
+        Responses::client($fake)->taxConnection->listForSubOrganizations(['ids' => 'a,b']);
+        self::assertSame('ids=a%2Cb', $fake->last()->getUri()->getQuery());
+    }
+
+    public function testCreateSubOrganizationPostsTheBodyWithNoIdempotencyKeyAndSoNoRetry(): void
+    {
+        $created = ['id' => 'c9', 'type' => 'secondary', 'status' => 'pending_verification'];
+        $fake = new FakeHttpClient([Responses::json(201, ['meta' => ['statusCode' => 201, 'success' => true, 'requestId' => 'req-ok'], 'data' => $created])]);
+        $yona = Responses::client($fake, ['api_key' => Responses::LIVE_KEY]);
+        $body = ['businessName' => 'Acme Retail Ltd', 'email' => 'accounts@acme.example'];
+        self::assertSame($created, $yona->organization->createSubOrganization($body));
+        self::assertSame('POST', $fake->last()->getMethod());
+        self::assertSame('/a/v1/organizations', $fake->last()->getUri()->getPath());
+        self::assertSame($body, json_decode((string) $fake->last()->getBody(), true));
+        self::assertFalse($fake->last()->hasHeader('Idempotency-Key'));
+
+        // Not retried: a 503 is thrown after one request.
+        $failing = new FakeHttpClient([Responses::refusal(503, 'SYS001')]);
+        try {
+            Responses::client($failing, ['api_key' => Responses::LIVE_KEY])->organization->createSubOrganization($body);
+            self::fail('expected a ServerException');
+        } catch (ServerException $err) {
+            self::assertSame(1, $failing->calls());
+        }
+    }
+
+    public function testBillingPartnerGetKeepsTheOptionsOnlyCallOf02AndTakesThePageOfBusinesses(): void
+    {
+        $partner = ['tier' => 'growth', 'businessesPage' => ['page' => 2, 'limit' => 50, 'total' => 120]];
+        $fake = new FakeHttpClient([Responses::ok($partner)]);
+        $yona = Responses::client($fake);
+        $options = new RequestOptions(headers: ['X-Probe' => 'p']);
+        $yona->billing->partner->get($options);
+        self::assertSame('/b/v1/partner', $fake->requests[0]->getUri()->getPath());
+        self::assertSame('', $fake->requests[0]->getUri()->getQuery());
+        self::assertSame('p', $fake->requests[0]->getHeaderLine('X-Probe'));
+        $yona->billing->partner->get(['page' => 2, 'limit' => 50], $options);
+        self::assertSame('page=2&limit=50', $fake->requests[1]->getUri()->getQuery());
+        self::assertSame('p', $fake->requests[1]->getHeaderLine('X-Probe'));
+        self::assertSame($partner, $yona->billing->partner->get());
+        self::assertSame('', $fake->requests[2]->getUri()->getQuery());
+    }
+
+    public function testReferenceGetResourceTypesTheStatesAndLgaLists(): void
+    {
+        $fake = new FakeHttpClient([
+            Responses::ok(['type' => 'lgas', 'version' => 1, 'items' => [['code' => 'NG-LA-IKE', 'name' => 'Ikeja', 'stateCode' => 'NG-LA'], ['code' => 'NG-OG-IFO', 'name' => 'Ifo', 'stateCode' => 'NG-OG']], 'fetchedAt' => '2026-11-10T00:00:00Z', 'stale' => false]),
+            Responses::ok(['type' => 'states', 'version' => 1, 'items' => [['code' => 'NG-LA', 'name' => 'Lagos']], 'fetchedAt' => '2026-11-10T00:00:00Z', 'stale' => false]),
+        ]);
+        $yona = Responses::client($fake);
+        $lgas = $yona->reference->getResource('lgas');
+        $inLagos = array_map(fn (array $lga): string => $lga['code'], array_values(array_filter($lgas['items'], fn (array $lga): bool => $lga['stateCode'] === 'NG-LA')));
+        self::assertSame(['NG-LA-IKE'], $inLagos);
+        self::assertSame('/i/v1/invoices/resources/lgas', $fake->requests[0]->getUri()->getPath());
+        $states = $yona->reference->getResource('states');
+        self::assertSame('/i/v1/invoices/resources/states', $fake->requests[1]->getUri()->getPath());
+        self::assertSame(['Lagos'], array_map(fn (array $state): string => $state['name'], $states['items']));
     }
 
     public function testHasNoPaymentsServiceMethodsUntilPaymentsLaunchesInProduction(): void

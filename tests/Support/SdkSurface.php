@@ -129,8 +129,8 @@ final class SdkSurface
 
     /**
      * The type a parameter is probed as: its named type, or `array` for the one union the SDK has, a
-     * query that also takes the options in first place (`taxConnection.get(array|RequestOptions|null)`,
-     * which keeps the options-only call of 0.1 working).
+     * query that also takes the options in first place (`taxConnection.get(array|RequestOptions|null)`
+     * and `billing.partner.get`, which keep the options-only call of the release before working).
      */
     private static function probeType(\ReflectionParameter $p): ?string
     {

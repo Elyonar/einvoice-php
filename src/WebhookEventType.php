@@ -20,6 +20,17 @@ namespace Useyona\EInvoice;
  *     data: array<string, mixed>,
  *     test?: true
  * }
+ *
+ * `data` of `organization.child.created`, sent to the parent when a sub-organisation is created.
+ * Ids only: read its name and status with `organization->listSubOrganizations(['ids' => […]])`.
+ * `actorUserId` is the person it is recorded under: who created it, or the parent's Owner when an
+ * API key did. `keyId` is present only when an API key created it: that key's id.
+ *
+ * @phpstan-type OrganizationChildCreatedData array{
+ *     childOrganizationId: string,
+ *     actorUserId: string,
+ *     keyId?: string
+ * }
  */
 final class WebhookEventType
 {

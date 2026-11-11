@@ -20,6 +20,12 @@ use Useyona\EInvoice\RequestOptions;
  * @phpstan-import-type LookupTaxIdData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ValidateInvoiceBody from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ValidateInvoiceData from \Useyona\EInvoice\Generated\Types
+ *
+ * The item shapes of the three code lists whose items are fixed (`getResource`):
+ *
+ * @phpstan-type CountryOption array{code: string, name: string}
+ * @phpstan-type StateOption array{code: string, name: string}
+ * @phpstan-type LgaOption array{code: string, name: string, stateCode: string}
  */
 final class ReferenceService extends BaseService
 {
@@ -57,9 +63,17 @@ final class ReferenceService extends BaseService
 
     /**
      * One code list's items, e.g. `currencies`, `tax-categories` (`reference.read`; free; 404 for a
-     * type not served).
+     * type not served). Three lists have a fixed item shape: `countries` `{code, name}` (ISO 3166-1
+     * alpha-2), `states` `{code, name}` (Nigeria: `NG-LA` Lagos) and `lgas` `{code, name, stateCode}`
+     * (Nigeria: `NG-LA-IKE` Ikeja, in `NG-LA`). For a State and LGA picker, read both once and
+     * filter `lgas` by the chosen state's `code`; a buyer's address takes these codes.
      *
-     * @return GetInvoiceReferenceListData
+     * @return (
+     *     $type is 'states' ? array{type: string, version: float, items: list<StateOption>, fetchedAt: string, stale: bool} : (
+     *     $type is 'lgas' ? array{type: string, version: float, items: list<LgaOption>, fetchedAt: string, stale: bool} : (
+     *     $type is 'countries' ? array{type: string, version: float, items: list<CountryOption>, fetchedAt: string, stale: bool} :
+     *     GetInvoiceReferenceListData
+     * )))
      */
     public function getResource(string $type, ?RequestOptions $options = null): array
     {

@@ -6,6 +6,44 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
+## Unreleased
+
+In line with `@useyona/einvoice-js` 0.10.0: the 138 operations an API key may call (134 before), 13
+documented exclusions; 126 methods in 27 modules.
+
+### Added
+
+- `$client->organization->listSubOrganizations()`, `listSubOrganizationsReadiness()` and
+  `createSubOrganization()`: a parent organisation lists its sub-organisations (a page, newest first;
+  `search`, `ids`), reads how ready each is for live, and creates one. The capabilities are
+  `organization.children.read` and `organization.children.create`, which no key preset includes.
+  Creating needs a live key (a sandbox key is refused with 403 `BIZ003`), sends no `Idempotency-Key`
+  and is not retried: a repeat answers 409 `RES002`. 402 `BIZ016` when the plan allows no more
+  organisations.
+- `$client->taxConnection->listForSubOrganizations(['ids' => […]])`: the state of the connection to
+  the tax authority of up to 100 sub-organisations, and whether a submission would pass.
+- `ids` may be given as a list; it reaches the API as one comma-separated value.
+- `$client->billing->partner->get(['page' => …, 'limit' => …])` pages the partner's businesses; the
+  answer carries `businessesPage`. `get($options)` is unchanged.
+- `$client->reference->getResource('states' | 'lgas' | 'countries')` has typed items for phpstan
+  (`StateOption`, `LgaOption`, `CountryOption` of `ReferenceService`). A buyer's Nigerian address
+  takes those codes: 400 `VAL202` (state) or `VAL203` (LGA) otherwise.
+- `OrganizationChildCreatedData` (a phpstan shape of `WebhookEventType`): `organization.child.created`
+  carries `keyId` when an API key created the sub-organisation.
+- Two guide recipes: `states-and-lgas` and `sub-organisations` (seven in all).
+
+### Changed
+
+- The generated models follow the API: the organisation address gains `lga`, the organisation
+  `onboardingProfile`, readiness `profile` and `liveRejection`, the billing plan `coveredBy`, payments
+  `netMinor`, `vatMinor`, `serviceFeeItem` and the kind `service_fee`, and plan-change quotes the
+  reason `renewal_in_progress`.
+
+### Fixed
+
+- `make sync` with `EINVOICE_JS_DIR` resolves the local einvoice-js checkout with `pwd -P` too, so
+  the generator runs when the folder is reached through a symlink.
+
 ## 0.2.0 (2026-11-04)
 
 In line with `@useyona/einvoice-js` 0.9.0: the 134 operations an API key may call, 13 documented

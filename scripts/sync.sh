@@ -12,16 +12,17 @@
 #   EINVOICE_JS_TOKEN=<token>          a GitHub token that may read einvoice-js while it is private (CI: a secret)
 set -eu
 
-# einvoice-js v0.9.0: snapshot of the 134 API-key operations (collections, invoice usage, plans,
-# partner, the R151 tax-connection query), the generator with the PHP emitter, and the webhook vectors.
-EINVOICE_JS_REF="${EINVOICE_JS_REF:-cdc3f25b5d7ca09127f010ff2eaed6b07c458522}"
+# einvoice-js at the commit that becomes v0.10.0: snapshot of the 138 API-key operations
+# (sub-organisations: list, readiness, create, their tax connections; the page of a partner's
+# businesses), the generator with the PHP emitter, and the webhook vectors.
+EINVOICE_JS_REF="${EINVOICE_JS_REF:-d3bc2d4a583ca5c2e81ee2555e07f0a9a664d85e}"
 EINVOICE_JS_REPO="${EINVOICE_JS_REPO:-https://github.com/Elyonar/einvoice-js.git}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CHECK=""
 [ "${1:-}" = "--check" ] && CHECK=1
 
 if [ -n "${EINVOICE_JS_DIR:-}" ]; then
-    SRC="$(cd "$EINVOICE_JS_DIR" && pwd)"
+    SRC="$(cd "$EINVOICE_JS_DIR" && pwd -P)"
     echo "sync: using local einvoice-js at $SRC"
 else
     # The physical path: on macOS mktemp answers /var/…, a symlink to /private/var/…, and
