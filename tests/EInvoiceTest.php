@@ -219,6 +219,10 @@ final class EInvoiceTest extends TestCase
         self::assertSame('p', $fake->requests[1]->getHeaderLine('X-Probe'));
         self::assertSame($partner, $yona->billing->partner->get());
         self::assertSame('', $fake->requests[2]->getUri()->getQuery());
+        // The named argument of 0.2 still binds.
+        $yona->billing->partner->get(options: $options);
+        self::assertSame('', $fake->requests[3]->getUri()->getQuery());
+        self::assertSame('p', $fake->requests[3]->getHeaderLine('X-Probe'));
     }
 
     public function testReferenceGetResourceTypesTheStatesAndLgaLists(): void

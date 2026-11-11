@@ -8,7 +8,7 @@ einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release
 
 ## Unreleased
 
-In line with `@useyona/einvoice-js` 0.10.0: the 138 operations an API key may call (134 before), 13
+In line with `@useyona/einvoice-js` 0.9.1: the 138 operations an API key may call (134 before), 13
 documented exclusions; 126 methods in 27 modules.
 
 ### Added
