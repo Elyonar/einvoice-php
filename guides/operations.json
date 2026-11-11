@@ -2,7 +2,7 @@
   "language": "php",
   "package": "useyona/einvoice-php",
   "sdkVersion": "0.2.0",
-  "generatedFrom": "b969111",
+  "generatedFrom": "753381e",
   "setup": "<?php\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
   "literal": {
     "string": "single",
@@ -73,6 +73,11 @@
       "module": "items",
       "method": "create",
       "template": "$result = $yona->items->create({{body}});"
+    },
+    "createOrganization": {
+      "module": "organization",
+      "method": "createSubOrganization",
+      "template": "$result = $yona->organization->createSubOrganization({{body}});"
     },
     "deactivateCollectionAccount": {
       "module": "collections",
@@ -252,7 +257,7 @@
     "getPartner": {
       "module": "billing.partner",
       "method": "get",
-      "template": "$result = $yona->billing->partner->get();"
+      "template": "$result = $yona->billing->partner->get({{query}});"
     },
     "getPartnerBasketQuote": {
       "module": "billing.partner",
@@ -358,6 +363,21 @@
       "module": "buyers",
       "method": "list",
       "template": "$result = $yona->buyers->list({{query}});"
+    },
+    "listChildOrganizations": {
+      "module": "organization",
+      "method": "listSubOrganizations",
+      "template": "$result = $yona->organization->listSubOrganizations({{query}});"
+    },
+    "listChildOrganizationsReadiness": {
+      "module": "organization",
+      "method": "listSubOrganizationsReadiness",
+      "template": "$result = $yona->organization->listSubOrganizationsReadiness({{query}});"
+    },
+    "listChildTaxConnections": {
+      "module": "taxConnection",
+      "method": "listForSubOrganizations",
+      "template": "$result = $yona->taxConnection->listForSubOrganizations({{query}});"
     },
     "listCollectionAccounts": {
       "module": "collections",

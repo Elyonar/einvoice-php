@@ -10,6 +10,7 @@ use Useyona\EInvoice\RequestOptions;
  * The partner account (`/b/v1/partner`): an Integrated Partner's tier, seats and their quotes.
  * Read-only for an API key.
  *
+ * @phpstan-import-type GetPartnerQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type GetPartnerData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type GetPartnerOfferData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type GetPartnerSeatQuoteQuery from \Useyona\EInvoice\Generated\Types
@@ -23,12 +24,23 @@ final class PartnerService extends BaseService
 {
     /**
      * The partner account: tier, seats, capacity and renewal (`billing.subscription.read`).
+     * `businesses` is one page of the businesses the partner pays for, oldest first, and
+     * `businessesPage` says which page and how many there are in all: pass
+     * `['page' => …, 'limit' => …]` for another (100 a page, the most, when `limit` is left out).
+     *
+     * The options-only call of 0.2, `get($options)`, still works.
+     *
+     * @param GetPartnerQuery|RequestOptions|null $query
      *
      * @return GetPartnerData
      */
-    public function get(?RequestOptions $options = null): array
+    public function get(array|RequestOptions|null $query = null, ?RequestOptions $options = null): array
     {
-        return $this->call('GET', '/b/v1/partner', ['options' => $options]);
+        if ($query instanceof RequestOptions) {
+            [$query, $options] = [null, $options ?? $query];
+        }
+
+        return $this->call('GET', '/b/v1/partner', ['query' => $query, 'options' => $options]);
     }
 
     /**

@@ -101,16 +101,16 @@ Received invoices and issued history return a `Paginated` object with the items 
 
 A refused request throws an exception chosen by status:
 
-| Status | Exception |
-|---|---|
-| 400, 422 | `ValidationException` |
-| 401 | `AuthenticationException` |
-| 402 | `InsufficientCreditsException` |
-| 403 | `PermissionException` |
-| 404 | `NotFoundException` |
-| 409 | `ConflictException` |
-| 429 | `RateLimitException` |
-| 5xx | `ServerException` |
+| Status | Exception | Typical `errorCode` |
+|---|---|---|
+| 400, 422 | `ValidationException` | `VAL001`; on a buyer's address `VAL202` (state not on the list) and `VAL203` (LGA not on the list, or of another state) |
+| 401 | `AuthenticationException` | `AUTH041` (key revoked, expired or unknown), `AUTH004` (no credential) |
+| 402 | `InsufficientCreditsException` | `BIZ001`; `BIZ016` from `organization->createSubOrganization` (the plan allows no more organisations) |
+| 403 | `PermissionException` | `AUTH018` (route not for API keys), `AUTH019` (capability missing), `BIZ108` (other mode), `BIZ003` (a sandbox key creating a sub-organisation) |
+| 404 | `NotFoundException` | `RES001` |
+| 409 | `ConflictException` | `BIZ004`, `BIZ201`, `BIZ205`, `RES002` (it already exists) … |
+| 429 | `RateLimitException` | `SYS005` (`retryAfter` set) |
+| 5xx | `ServerException` | |
 
 All extend `ApiException`, which carries `status`, `errorCode`, `errors` (per field), `requestId`
 and `retryAfter`:
@@ -179,15 +179,24 @@ the SDK can list and test them and inspect deliveries.
 
 ## Guides
 
-[`examples/`](examples/) holds complete, runnable walkthroughs: your first invoice, webhooks, errors
-and retries, sandbox and live, received invoices. Run them against your sandbox key with
-`YONA_API_KEY=sk_test_… make examples`.
+[`examples/`](examples/) holds seven complete, runnable walkthroughs. Run them against your sandbox
+key with `YONA_API_KEY=sk_test_… make examples`.
+
+| Recipe | What it shows |
+|---|---|
+| [`first-invoice.php`](examples/first-invoice.php) | buyer → item → draft → finalise → submit → status → PDF and QR |
+| [`webhooks.php`](examples/webhooks.php) | verifying a delivery, reading the event, listing deliveries and redelivering |
+| [`errors-and-retries.php`](examples/errors-and-retries.php) | `errorCode`, `status`, `requestId`, `retryAfter`; idempotency keys; a safe retry helper |
+| [`sandbox-and-live.php`](examples/sandbox-and-live.php) | the mode from the key, `assert_mode`, and why going live changes only the key |
+| [`received-invoices.php`](examples/received-invoices.php) | received invoices: filters and walking every page with `EInvoice::paginate` |
+| [`states-and-lgas.php`](examples/states-and-lgas.php) | the state and LGA lists, an LGA picker filtered by state, a buyer saved with the codes, `VAL202` and `VAL203` |
+| [`sub-organisations.php`](examples/sub-organisations.php) | listing sub-organisations with a key, their readiness for live and their tax connections, creating one with a live key |
 
 ## API reference
 
 Every method takes an optional trailing `?RequestOptions $options`. Request and query arrays have
 shapes named after the operation (`CreateInvoiceBody`, `ListInvoicesQuery`) in
-`Useyona\EInvoice\Generated\Types`. 122 methods in 27 modules; a test proves every operation an API
+`Useyona\EInvoice\Generated\Types`. 126 methods in 27 modules; a test proves every operation an API
 key may call is a method or a documented exclusion (`ExcludedOperations`).
 
 | Module | Methods |
@@ -202,8 +211,9 @@ key may call is a method or a documented exclusion (`ExcludedOperations`).
 | `$client->sellers` | `list`, `get`, `getVerificationStatus`, `search` |
 | `$client->inboundInvoices` | `list`, `get`, `getAnalytics`, `listHistoryRuns`, `getHistoryRun`, `loadOlder` |
 | `$client->issuedHistory` | `list`, `get`, `downloadPdf` |
-| `$client->invoiceSettings`, `$client->taxConnection` | `get` |
-| `$client->organization` | `get`, `getReadiness` |
+| `$client->invoiceSettings` | `get` |
+| `$client->taxConnection` | `get`, `listForSubOrganizations` |
+| `$client->organization` | `get`, `getReadiness`, `listSubOrganizations`, `listSubOrganizationsReadiness`, `createSubOrganization` |
 | `$client->billing->accounts` | `getMine`, `getStats`, `checkBalance` |
 | `$client->billing->payments` | `list`, `get` |
 | `$client->billing->sandbox` | `listTransactions`, `getUsage` |
@@ -225,6 +235,59 @@ holds for the organisation (its TIN or its 13-digit Tax ID): `einvoicingIdentifi
 `identifierNextAction` when it holds neither. `['fresh' => 'true']` asks the authority again. Both
 are rationed; pass them only when you need that answer. `get($options)` still works.
 
+`$client->taxConnection->listForSubOrganizations(['ids' => […]])` is for a parent organisation: the
+state of each named sub-organisation's connection in the key's mode, and whether a submission would
+pass (`tax_connection.read`). `ids` is a list (or a comma-separated string) of at most 100 ids, each
+once. An id that is not one of the organisation's sub-organisations is left out of the answer.
+
+### Sub-organisations
+
+An organisation that runs several businesses holds them as sub-organisations. No key preset includes
+`organization.children.read` or `organization.children.create`: an Owner or Admin adds them to a key
+by name, under Sub-organisations in the dashboard's Create API Key dialog.
+
+| Method | Route | Capability |
+|---|---|---|
+| `organization->listSubOrganizations` | `GET /a/v1/organizations/me/children` | `organization.children.read` |
+| `organization->listSubOrganizationsReadiness` | `GET /a/v1/organizations/me/children/readiness` | `organization.children.read` |
+| `organization->createSubOrganization` | `POST /a/v1/organizations` | `organization.children.create` |
+| `taxConnection->listForSubOrganizations` | `GET /i/v1/tax-connection/children?ids=` | `tax_connection.read` |
+
+- `listSubOrganizations(['page' => …, 'limit' => …, 'search' => …, 'ids' => […]])` answers a page,
+  newest first, with the total in `pagination`; 100 a page at most. `ids` (a list, at most 100) keeps
+  only the ones named. It works in sandbox and live, and with `EInvoice::paginate`. A list of ids
+  reaches the API as one comma-separated value.
+- `listSubOrganizationsReadiness` answers the same page with each sub-organisation's checklist,
+  `liveStatus` and `nextStep`.
+- `createSubOrganization(['businessName' => …, 'email' => …, 'phoneNumber' => …, 'website' => …])`
+  (the last two optional; the country is the parent's) needs a live key: a sandbox key is refused
+  with 403 `BIZ003`. The new organisation is recorded under the parent's longest-standing Owner and
+  is `pending_verification` until it completes its own onboarding. No `Idempotency-Key` is sent and
+  the SDK does not retry it: a name is unique under its parent, so a repeat answers 409 `RES002`.
+  402 `BIZ016` when the plan allows no more organisations; 60 calls a minute for each key.
+- The parent's `organization.child.created` webhook carries `childOrganizationId`, `actorUserId`
+  and, only when an API key created the sub-organisation, `keyId` (the phpstan shape
+  `OrganizationChildCreatedData` of `Useyona\EInvoice\WebhookEventType`).
+
+### States and LGAs
+
+`$client->reference->getResource('states')` and `getResource('lgas')` have typed items: a state
+has `code` and `name` (`NG-LA` Lagos) and an LGA has `code`, `name` and `stateCode` (`NG-LA-IKE`
+Ikeja, in `NG-LA`). For a State and LGA picker, read both once and filter the LGAs by the chosen
+state's `code`. An item of `getResource('countries')` has `code` and `name`. The phpstan shapes are
+`StateOption`, `LgaOption` and `CountryOption` of `Useyona\EInvoice\Service\ReferenceService`.
+
+For a Nigerian address, a buyer's `address.state` and `address.lga` are a state and an LGA from
+those lists: the `code`, or the exact `name`, which is stored as the code. A value that is not on
+the list is refused with 400 `VAL202` (state) or `VAL203` (LGA, also when it belongs to another
+state). Both are optional, and free text for other countries.
+
+### Billing and collections
+
+`$client->billing->partner->get(['page' => 2, 'limit' => 50])` pages the businesses the partner pays
+for (`businesses`, oldest first; `businessesPage` carries `page`, `limit` and `total`; 100 a page,
+the most, when `limit` is left out). `get()` and `get($options)` still work.
+
 `billing->plans->getRecommendation()`, `billing->usage->getInvoices()`,
 `billing->partner->getOffer()` and `billing->subscriptions->getDealOffer()` return `null` when there
 is nothing to show. `$client->collections` answers only where collections are switched on for the
@@ -232,8 +295,10 @@ key's mode; elsewhere every call is 409 `BIZ120` (`ConflictException`). Its writ
 `Idempotency-Key` and are not retried.
 
 Account management (users, roles, API keys, purchases, webhook endpoint settings) is done in the
-Yona dashboard, not through the API key. The payments service's bank-account and transfer reads join
-the SDK when payments launches in production.
+Yona dashboard, not through the API key. So is managing a sub-organisation (its profile, members,
+onboarding and tax connection), signed in to that sub-organisation: a key lists sub-organisations
+and creates one. The payments service's bank-account and transfer reads join the SDK when payments
+launches in production.
 
 ## Configuration
 

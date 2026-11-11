@@ -1,6 +1,6 @@
 {
   "sdkVersion": "0.2.0",
-  "generatedFrom": "b969111",
+  "generatedFrom": "753381e",
   "install": "composer require useyona/einvoice-php",
   "quickStart": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_\n\n$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
   "recipes": [
@@ -348,6 +348,116 @@
           "sdk": "$buyers = 0;\nforeach (EInvoice::paginate(fn (array $q) => $yona->buyers->list($q), ['limit' => 100]) as $buyer) {\n    if ($buyer['id'] !== '') {\n        ++$buyers;\n    }\n}\necho 'buyers ', $buyers, \"\\n\";",
           "curl": "curl \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
           "operationId": "listBuyers"
+        }
+      ]
+    },
+    {
+      "id": "states-and-lgas",
+      "title": "States and LGAs",
+      "summary": "A Nigerian address uses the tax authority's own state and LGA codes. Read both lists, fill an LGA picker from the chosen state, save a buyer with the codes, and handle a value that is not on the lists.",
+      "steps": [
+        {
+          "id": "client",
+          "title": "Create the client",
+          "text": null,
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Exception\\ValidationException;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "lists",
+          "title": "Read the states and the LGAs",
+          "text": "Both lists are free to read and change rarely, so read them once and keep them. A state has code and name. An LGA has code, name and stateCode, where stateCode is its state's code.",
+          "sdk": "$states = $yona->reference->getResource('states')['items'];\n$lgas = $yona->reference->getResource('lgas')['items'];\necho count($states), ' states, ', count($lgas), \" LGAs\\n\";",
+          "curl": "curl \"https://gp.useyona.com/i/v1/invoices/resources/{type}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "getInvoiceReferenceList"
+        },
+        {
+          "id": "picker",
+          "title": "Fill the LGA picker from the chosen state",
+          "text": "Filter the LGAs by the chosen state's code. Keep the code, never the name alone: a few LGA names exist in two states, and a code cannot be worked out from a name.",
+          "sdk": "$lagos = array_values(array_filter($states, fn (array $state): bool => $state['name'] === 'Lagos'))[0] ?? null;\nif ($lagos === null) {\n    throw new RuntimeException('Lagos is not on the list of states');\n}\n$lgasOfLagos = array_values(array_filter($lgas, fn (array $lga): bool => $lga['stateCode'] === $lagos['code']));\n$ikeja = array_values(array_filter($lgasOfLagos, fn (array $lga): bool => $lga['name'] === 'Ikeja'))[0] ?? null;\nif ($ikeja === null) {\n    throw new RuntimeException('Ikeja is not on the list of LGAs for Lagos');\n}\necho $lagos['code'], ' ', $ikeja['code'], ' (', count($lgasOfLagos), \" LGAs in Lagos)\\n\";",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "buyer",
+          "title": "Save a buyer with the codes",
+          "text": "Send the state and LGA codes in the buyer's address. The exact names are accepted too and are stored as the codes; the answer always carries the codes. Both fields are optional.",
+          "sdk": "$buyer = $yona->buyers->create([\n    'name' => 'Acme Trading ' . bin2hex(random_bytes(4)),\n    'partyType' => 'individual',\n    'address' => ['line1' => '12 Allen Avenue', 'city' => 'Ikeja', 'state' => $lagos['code'], 'lga' => $ikeja['code'], 'country' => 'NG'],\n]);\n$saved = $buyer['address'] ?? [];\nif (($saved['state'] ?? null) !== $lagos['code'] || ($saved['lga'] ?? null) !== $ikeja['code']) {\n    throw new RuntimeException('the buyer did not keep the codes');\n}\necho 'buyer ', $buyer['id'], ' ', $saved['state'], ' ', $saved['lga'], \"\\n\";",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"string\"\n}'",
+          "operationId": "createBuyer"
+        },
+        {
+          "id": "refused",
+          "title": "Handle a value that is not on the lists",
+          "text": "A state that is not on the list is refused with VAL202. An LGA that is not on the list, or that belongs to another state, is refused with VAL203. Nothing is saved, and errors names the field.",
+          "sdk": "$elsewhere = array_values(array_filter($lgas, fn (array $lga): bool => $lga['stateCode'] !== $lagos['code']))[0] ?? null;\nif ($elsewhere === null) {\n    throw new RuntimeException('every LGA is in Lagos');\n}\ntry {\n    $yona->buyers->update($buyer['id'], [\n        'address' => ['line1' => '12 Allen Avenue', 'city' => 'Ikeja', 'state' => $lagos['code'], 'lga' => $elsewhere['code'], 'country' => 'NG'],\n    ]);\n    throw new RuntimeException('an LGA of another state was accepted');\n} catch (ValidationException $err) {\n    if ($err->errorCode !== 'VAL203') {\n        throw $err;\n    }\n    echo 'refused: ', $err->errorCode, \"\\n\";\n    foreach ($err->errors as $e) {\n        echo \"  {$e->field}: {$e->message}\\n\";\n    }\n}",
+          "curl": "curl -X PATCH \"https://gp.useyona.com/i/v1/buyers/{id}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{}'",
+          "operationId": "updateBuyer"
+        },
+        {
+          "id": "tidy",
+          "title": "Remove the example buyer",
+          "text": null,
+          "sdk": "$yona->buyers->delete($buyer['id']);",
+          "curl": "curl -X DELETE \"https://gp.useyona.com/i/v1/buyers/{id}\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "deleteBuyer"
+        }
+      ]
+    },
+    {
+      "id": "sub-organisations",
+      "title": "Sub-organisations",
+      "summary": "For an organisation that runs several businesses: list its sub-organisations with an API key, see which are ready for live and connected to the tax authority, and create one with a live key.",
+      "steps": [
+        {
+          "id": "client",
+          "title": "Create the client",
+          "text": "Use a key of the parent organisation. No key preset includes the two sub-organisation permissions: an Owner or Admin ticks them under Sub-organisations when creating the key in the dashboard. Listing works in sandbox and live; creating needs a live key.",
+          "sdk": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\nuse Useyona\\EInvoice\\Exception\\ConflictException;\nuse Useyona\\EInvoice\\Exception\\NotFoundException;\nuse Useyona\\EInvoice\\Exception\\PermissionException;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
+          "curl": null,
+          "operationId": null
+        },
+        {
+          "id": "list",
+          "title": "List the sub-organisations",
+          "text": "Newest first, 100 a page at most, with the total in pagination. search keeps the ones whose name holds the text. The permission is organization.children.read.",
+          "sdk": "try {\n    $firstPage = $yona->organization->listSubOrganizations(['limit' => 100]);\n} catch (PermissionException|NotFoundException|ConflictException $err) {\n    // 403 AUTH019: the key does not hold organization.children.read. 404 RES001: sub-organisations are\n    // not switched on here. 409 BIZ014: this organisation is itself a sub-organisation.\n    $nothingToList =\n        ($err instanceof PermissionException && $err->errorCode === 'AUTH019')\n        || ($err instanceof NotFoundException && $err->errorCode === 'RES001')\n        || ($err instanceof ConflictException && $err->errorCode === 'BIZ014');\n    if (!$nothingToList) {\n        throw $err;\n    }\n    echo 'this key cannot list sub-organisations: ', $err->errorCode, \"\\n\";\n    exit(0);\n}\necho $firstPage->pagination['total'], \" sub-organisations\\n\";",
+          "curl": "curl \"https://gp.useyona.com/a/v1/organizations/me/children\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listChildOrganizations"
+        },
+        {
+          "id": "paginate",
+          "title": "Walk every page",
+          "text": "An organisation can hold many sub-organisations. EInvoice::paginate fetches page after page for you.",
+          "sdk": "$all = [];\nforeach (EInvoice::paginate(fn (array $query) => $yona->organization->listSubOrganizations($query), ['limit' => 100]) as $sub) {\n    $all[] = $sub;\n    if (count($all) >= 300) {\n        break;\n    }\n}\necho 'read ', count($all), \"\\n\";",
+          "curl": "curl \"https://gp.useyona.com/a/v1/organizations/me/children\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listChildOrganizations"
+        },
+        {
+          "id": "readiness",
+          "title": "See which are ready for live",
+          "text": "The same page, with each sub-organisation's checklist, live status and next step. ids keeps only the ones you name (100 at most), given as a list.",
+          "sdk": "$ids = array_map(fn (array $sub): string => $sub['id'], $firstPage->data);\n$readiness = $yona->organization->listSubOrganizationsReadiness($ids !== [] ? ['ids' => $ids] : ['limit' => 100]);\nforeach ($readiness->data as $sub) {\n    echo $sub['name'], ' ', $sub['liveStatus'], ' ', $sub['nextStep'], \"\\n\";\n}",
+          "curl": "curl \"https://gp.useyona.com/a/v1/organizations/me/children/readiness\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listChildOrganizationsReadiness"
+        },
+        {
+          "id": "tax-connection",
+          "title": "Check their tax connections",
+          "text": "One item for each sub-organisation named: the state of its connection to the tax authority in the key's mode, and whether a submission would pass. The permission is tax_connection.read. An id that is not one of your sub-organisations is left out.",
+          "sdk": "if ($ids !== []) {\n    $connections = $yona->taxConnection->listForSubOrganizations(['ids' => $ids]);\n    foreach ($connections as $c) {\n        echo $c['organizationId'], ' ', $c['state'], ' ', var_export($c['submissionsAllowed'], true), \"\\n\";\n    }\n}",
+          "curl": "curl \"https://gp.useyona.com/i/v1/tax-connection/children?ids=0192f1a0-0000-7000-8000-00000000000a%2C0192f1a0-0000-7000-8000-00000000000b\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\"",
+          "operationId": "listChildTaxConnections"
+        },
+        {
+          "id": "create",
+          "title": "Create a sub-organisation",
+          "text": "With a live key that holds organization.children.create, this answers the new organisation; its status is pending_verification until it completes its own onboarding. A name is unique under its parent, so a repeat answers 409 RES002 and nothing is created twice. A sandbox key is refused, which is what this step shows in sandbox; with a live key it creates nothing here.",
+          "sdk": "if ($yona->mode() === 'sandbox') {\n    try {\n        $created = $yona->organization->createSubOrganization(['businessName' => 'Acme Retail Ltd', 'email' => 'accounts@acme.example']);\n        throw new RuntimeException(\"a sandbox key created {$created['id']}\");\n    } catch (PermissionException $err) {\n        echo 'refused in sandbox: ', $err->errorCode, \"\\n\";\n    }\n}",
+          "curl": "curl -X POST \"https://gp.useyona.com/a/v1/organizations\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"businessName\": \"Acme Retail Ltd\",\n  \"email\": \"ada@example.com\"\n}'",
+          "operationId": "createOrganization"
         }
       ]
     }

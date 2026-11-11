@@ -63,9 +63,9 @@ final class EInvoice
     public readonly IssuedHistoryService $issuedHistory;
     /** Invoice settings (read-only). */
     public readonly InvoiceSettingsService $invoiceSettings;
-    /** The connection to the tax authority (read-only). */
+    /** The connection to the tax authority (read-only), and the state of the sub-organisations' connections. */
     public readonly TaxConnectionService $taxConnection;
-    /** The key's organisation (read-only). */
+    /** The key's organisation (read-only) and its sub-organisations (list, readiness, create). */
     public readonly OrganizationService $organization;
     /** Billing reads: account, ledger, statements, subscriptions, payments, sandbox allowance, invoice usage, plans, partner. */
     public readonly BillingService $billing;
