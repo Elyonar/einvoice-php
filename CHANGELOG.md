@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
-## Unreleased
+## 0.2.1 (2026-11-11)
 
 In line with `@useyona/einvoice-js` 0.9.1: the 138 operations an API key may call (134 before), 13
 documented exclusions; 126 methods in 27 modules.

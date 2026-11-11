@@ -1,8 +1,8 @@
 {
   "language": "php",
   "package": "useyona/einvoice-php",
-  "sdkVersion": "0.2.0",
-  "generatedFrom": "753381e",
+  "sdkVersion": "0.2.1",
+  "generatedFrom": "57b76df",
   "setup": "<?php\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
   "literal": {
     "string": "single",
