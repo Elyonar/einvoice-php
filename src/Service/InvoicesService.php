@@ -52,7 +52,9 @@ final class InvoicesService extends BaseService
     }
 
     /**
-     * Lists invoices, newest first, without `lineItems` (`invoice.read`).
+     * Lists invoices, newest first, without `lineItems` (`invoice.read`). `['reporting' => 'held']`
+     * keeps the invoices issued while the connection to the tax authority was in progress: each is
+     * reported automatically once it completes (`reporting.state` is `held` until then).
      *
      * @param ListInvoicesQuery|null $query
      *
@@ -194,7 +196,8 @@ final class InvoicesService extends BaseService
     }
 
     /**
-     * The counts behind the invoice list's summary cards (`invoice.stats.read`).
+     * The counts behind the invoice list's summary cards (`invoice.stats.read`); `held` counts the
+     * invoices waiting for the connection to the tax authority.
      *
      * @param GetInvoiceListSummaryQuery|null $query
      *

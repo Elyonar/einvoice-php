@@ -24,6 +24,13 @@ final class TaxConnectionService extends BaseService
      * `['fresh' => 'true']` asks the authority again. Both are rationed: pass them only when that
      * answer is needed.
      *
+     * `state` can be `awaiting_authority_listing`: the business asked to connect, and the tax
+     * authority does not list it under any of its numbers yet. Yona asks the authority again every 6
+     * hours (`['fresh' => 'true']` asks now) and carries on by itself once it is listed; `listing`
+     * says since when, when it was last asked and is asked next, and what the last answer was (`null`
+     * in every other state). `connectWaits` says whether connecting now would wait like this instead
+     * of being refused. Invoices issued meanwhile are held and reported once the connection completes.
+     *
      * The options-only call of 0.1, `get($options)`, still works.
      *
      * @param GetTaxConnectionQuery|RequestOptions|null $query

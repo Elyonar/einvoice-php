@@ -235,6 +235,25 @@ holds for the organisation (its TIN or its 13-digit Tax ID): `einvoicingIdentifi
 `identifierNextAction` when it holds neither. `['fresh' => 'true']` asks the authority again. Both
 are rationed; pass them only when you need that answer. `get($options)` still works.
 
+`state` can be `awaiting_authority_listing`: the business asked to connect and the tax authority
+does not list it under any of its numbers yet. Yona asks the authority again every 6 hours and
+carries on by itself once the business is listed. `listing` then holds `since`, `checkedAt`,
+`nextCheckAt` and the last `answer` (`unknown`, `elsewhere`, `unanswered` or `held_elsewhere`); it is
+`null` in every other state. `connectWaits` says whether connecting now would wait like this instead
+of being refused. The `tax_connection.action_required` webhook is sent for this state too, and
+`invoice.finalised` can carry `reporting` (the phpstan shape `InvoiceFinalisedData` of
+`Useyona\EInvoice\WebhookEventType`), so a handler can tell a held invoice from one being reported.
+
+### Held invoices
+
+While an organisation's connection to the tax authority is still in progress, an invoice it issues
+is not refused: `$client->submissions->issue()` answers `reporting` `held` with `notReportedReason`
+`awaiting_connection`, the invoice is sent to the buyer, and Yona reports it automatically once the
+connection completes. Until then the invoice's `reporting.state` is `held`;
+`$client->invoices->list(['reporting' => 'held'])` lists them and `$client->invoices->getSummary()`
+counts them in `held`. If one cannot be reported when the connection completes, its
+`reporting.reason` is `release_refused`: report it yourself with `$client->submissions->submit()`.
+
 `$client->taxConnection->listForSubOrganizations(['ids' => […]])` is for a parent organisation: the
 state of each named sub-organisation's connection in the key's mode, and whether a submission would
 pass (`tax_connection.read`). `ids` is a list (or a comma-separated string) of at most 100 ids, each

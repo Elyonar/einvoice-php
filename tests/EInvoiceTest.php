@@ -241,6 +241,36 @@ final class EInvoiceTest extends TestCase
         self::assertSame(['Lagos'], array_map(fn (array $state): string => $state['name'], $states['items']));
     }
 
+    public function testHeldInvoicesTheListFilterAndTheIssueAnswerPassThrough(): void
+    {
+        $pagination = ['total' => 1, 'page' => 1, 'pageSize' => 20, 'totalPages' => 1, 'hasNext' => false, 'hasPrevious' => false];
+        $fake = new FakeHttpClient([
+            Responses::ok([['id' => 'inv-1', 'reporting' => ['state' => 'held', 'reason' => null]]], ['pagination' => $pagination]),
+            Responses::ok(['held' => 3]),
+            Responses::ok(['reporting' => 'held', 'notReportedReason' => 'awaiting_connection']),
+        ]);
+        $yona = Responses::client($fake);
+        $page = $yona->invoices->list(['reporting' => 'held']);
+        self::assertSame('/i/v1/invoices', $fake->requests[0]->getUri()->getPath());
+        self::assertSame('reporting=held', $fake->requests[0]->getUri()->getQuery());
+        self::assertSame(['held'], array_map(fn (array $invoice): string => $invoice['reporting']['state'], $page->data));
+        self::assertSame(['held' => 3], $yona->invoices->getSummary(['reporting' => 'held']));
+        self::assertSame('reporting=held', $fake->requests[1]->getUri()->getQuery());
+        $issued = $yona->submissions->issue('inv-1');
+        self::assertSame('held', $issued['reporting']);
+        self::assertSame('awaiting_connection', $issued['notReportedReason']);
+    }
+
+    public function testTheTaxConnectionCanBeWaitingForTheAuthorityToListTheBusiness(): void
+    {
+        $listing = ['since' => '2026-11-12T09:00:00Z', 'checkedAt' => null, 'nextCheckAt' => null, 'answer' => 'unknown'];
+        $fake = new FakeHttpClient([Responses::ok(['state' => 'awaiting_authority_listing', 'submissionsAllowed' => false, 'connectWaits' => true, 'listing' => $listing])]);
+        $connection = Responses::client($fake)->taxConnection->get();
+        self::assertSame('awaiting_authority_listing', $connection['state']);
+        self::assertTrue($connection['connectWaits']);
+        self::assertSame($listing, $connection['listing']);
+    }
+
     public function testHasNoPaymentsServiceMethodsUntilPaymentsLaunchesInProduction(): void
     {
         $yona = new EInvoice(['api_key' => Responses::TEST_KEY]);
