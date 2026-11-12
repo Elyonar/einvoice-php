@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
-## Unreleased
+## 0.2.2 (2026-11-12)
 
 In line with `@useyona/einvoice-js` 0.9.2: no new operation and no new method; new values and
 fields in the answers.
