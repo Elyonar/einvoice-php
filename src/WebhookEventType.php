@@ -31,6 +31,22 @@ namespace Useyona\EInvoice;
  *     actorUserId: string,
  *     keyId?: string
  * }
+ *
+ * `data` of `invoice.finalised`, sent when an invoice is finalised (issued). `payableMinor` is what is
+ * payable, in minor units of `currency` (ISO 4217). `reporting`, when present, says how the invoice
+ * stands with the tax authority at that moment, with the same values as the invoice's own
+ * `reporting`: `state` `held` means it was issued while the connection to the tax authority was
+ * still in progress and will be reported automatically once it completes. It is optional: older
+ * deliveries do not carry it. Treat a value you do not know as "not yet reported".
+ *
+ * @phpstan-type InvoiceFinalisedData array{
+ *     invoiceId: string,
+ *     status: 'finalised',
+ *     invoiceNumber: string,
+ *     currency: string,
+ *     payableMinor: int,
+ *     reporting?: array{state: string, reason: string|null}
+ * }
  */
 final class WebhookEventType
 {

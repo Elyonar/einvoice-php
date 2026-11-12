@@ -206,6 +206,21 @@ final class WebhooksTest extends TestCase
         Webhooks::verifyWebhook(self::body(), null, self::str('secret'), null, $t);
     }
 
+    public function testInvoiceFinalisedCarriesReportingWhenTheApiSendsItAndStillReadsWithoutIt(): void
+    {
+        $secret = self::str('secret');
+        $t = self::int('t');
+        $base = ['id' => 'evt-1', 'type' => 'invoice.finalised', 'version' => 1, 'createdAt' => '2026-11-12T10:00:00Z', 'mode' => 'live', 'organizationId' => 'org-1'];
+        $data = ['invoiceId' => 'inv-1', 'status' => 'finalised', 'invoiceNumber' => 'INV-ACME-26-000001', 'currency' => 'NGN', 'payableMinor' => 150000];
+        $held = json_encode([...$base, 'data' => [...$data, 'reporting' => ['state' => 'held', 'reason' => null]]], JSON_THROW_ON_ERROR);
+        $plain = json_encode([...$base, 'data' => $data], JSON_THROW_ON_ERROR);
+        $withReporting = Webhooks::verifyWebhook($held, ['yona-signature' => Webhooks::signWebhookPayload($held, $secret, $t)], $secret, null, $t);
+        self::assertSame(['state' => 'held', 'reason' => null], $withReporting['data']['reporting']);
+        $without = Webhooks::verifyWebhook($plain, ['yona-signature' => Webhooks::signWebhookPayload($plain, $secret, $t)], $secret, null, $t);
+        self::assertArrayNotHasKey('reporting', $without['data']);
+        self::assertSame(150000, $without['data']['payableMinor']);
+    }
+
     public function testUsesTheCurrentClockByDefault(): void
     {
         $body = self::body();

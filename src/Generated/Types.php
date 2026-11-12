@@ -991,7 +991,7 @@ namespace Useyona\EInvoice\Generated;
  * }
  * @phpstan-type ChildConnectionViewDto array{
  *     organizationId: string,
- *     state: 'not_connected'|'pending_taxpayer_enablement'|'pending_grant_approval'|'pending_key'|'connected'|'suspended'|'revoked',
+ *     state: 'not_connected'|'awaiting_authority_listing'|'pending_taxpayer_enablement'|'pending_grant_approval'|'pending_key'|'connected'|'suspended'|'revoked',
  *     submissionsAllowed: bool
  * }
  * @phpstan-type ClaimedIdentifiersViewDto array{
@@ -1043,7 +1043,7 @@ namespace Useyona\EInvoice\Generated;
  *     mode: 'sandbox'|'live',
  *     jurisdiction: string|null,
  *     kind: 'organization',
- *     state: 'not_connected'|'pending_taxpayer_enablement'|'pending_grant_approval'|'pending_key'|'connected'|'suspended'|'revoked',
+ *     state: 'not_connected'|'awaiting_authority_listing'|'pending_taxpayer_enablement'|'pending_grant_approval'|'pending_key'|'connected'|'suspended'|'revoked',
  *     issuesAs: 'organisation'|'test_entity',
  *     fallback: ConnectionFallbackDto|null,
  *     taxId: string|null,
@@ -1066,7 +1066,9 @@ namespace Useyona\EInvoice\Generated;
  *     legalNameMatches: bool|null,
  *     einvoicingIdentifier: string|null,
  *     identifierSource: 'tin'|'tax_id'|null,
- *     identifierNextAction: 'add_tin'|'enable_on_nrs'|'choose_elyonar'|'retry'|null
+ *     identifierNextAction: 'add_tin'|'enable_on_nrs'|'choose_elyonar'|'retry'|null,
+ *     connectWaits: bool,
+ *     listing: ListingViewDto|null
  * }
  * @phpstan-type CountryOptionDto array{
  *     code: string,
@@ -1456,6 +1458,7 @@ namespace Useyona\EInvoice\Generated;
  *     inProgress: int,
  *     reported: int,
  *     needsAttention: int,
+ *     held: int,
  *     outstanding: list<CurrencyAmountCountDto>,
  *     overdue: list<CurrencyAmountCountDto>
  * }
@@ -1499,10 +1502,10 @@ namespace Useyona\EInvoice\Generated;
  *     country: string
  * }
  * @phpstan-type InvoiceReportingDto array{
- *     state: 'not_submitted'|'in_progress'|'reported'|'rejected'|'on_hold',
+ *     state: 'not_submitted'|'in_progress'|'reported'|'rejected'|'on_hold'|'held',
  *     delivery: 'nrs'|'deliver_to_buyer'|'sent_email'|'shared_link'|'none',
  *     deliveredAt: string|null,
- *     reason: 'buyer_off_network'|'b2c_invalid_tin'|'b2c'|'permission_withdrawn'|null,
+ *     reason: 'buyer_off_network'|'b2c_invalid_tin'|'b2c'|'permission_withdrawn'|'release_refused'|null,
  *     irn: string|null,
  *     nextAction: 'renumber'|'retry'|null,
  *     nextActionMessage: string|null
@@ -1538,7 +1541,7 @@ namespace Useyona\EInvoice\Generated;
  *     taxConnection: InvoiceSetupTaxConnectionDto
  * }
  * @phpstan-type InvoiceSetupTaxConnectionDto array{
- *     state: 'pending_taxpayer_enablement'|'pending_grant_approval'|'pending_key'|'connected'|'suspended'|'revoked'|'not_connected'
+ *     state: 'awaiting_authority_listing'|'pending_taxpayer_enablement'|'pending_grant_approval'|'pending_key'|'connected'|'suspended'|'revoked'|'not_connected'
  * }
  * @phpstan-type InvoiceStatisticsDto array{
  *     window: StatisticsWindowDto,
@@ -1659,8 +1662,8 @@ namespace Useyona\EInvoice\Generated;
  * @phpstan-type IssueAnswerDto array{
  *     invoice: InvoiceViewDto,
  *     submission: SubmissionViewDto|null,
- *     reporting: 'queued'|'not_reported',
- *     notReportedReason: 'not_connected'|'auto_report_off'|null,
+ *     reporting: 'queued'|'not_reported'|'held',
+ *     notReportedReason: 'not_connected'|'auto_report_off'|'awaiting_connection'|null,
  *     sentToBuyer: bool,
  *     replayed: bool
  * }
@@ -1700,6 +1703,12 @@ namespace Useyona\EInvoice\Generated;
  *     referenced: bool,
  *     createdAt: string,
  *     updatedAt: string
+ * }
+ * @phpstan-type ListingViewDto array{
+ *     since: string,
+ *     checkedAt: string|null,
+ *     nextCheckAt: string|null,
+ *     answer: 'unknown'|'elsewhere'|'unanswered'|'held_elsewhere'|null
  * }
  * @phpstan-type MonthBucketDto array{
  *     count: float,
@@ -2647,7 +2656,7 @@ namespace Useyona\EInvoice\Generated;
  *     createdAtTo?: string,
  *     search?: string,
  *     simpleStatus?: 'draft'|'issued'|'reported'|'transmitted'|'delivered'|'paid'|'part_paid'|'cancelled',
- *     reporting?: 'draft'|'not_reported'|'in_progress'|'reported'|'needs_attention',
+ *     reporting?: 'draft'|'not_reported'|'in_progress'|'reported'|'needs_attention'|'held',
  *     delivery?: 'nrs'|'deliver_to_buyer'|'sent_email'|'shared_link'|'none',
  *     credited?: 'true'|'false',
  *     refundOwed?: 'true'|'false',
@@ -2782,7 +2791,7 @@ namespace Useyona\EInvoice\Generated;
  *     createdAtTo?: string,
  *     search?: string,
  *     simpleStatus?: 'draft'|'issued'|'reported'|'transmitted'|'delivered'|'paid'|'part_paid'|'cancelled',
- *     reporting?: 'draft'|'not_reported'|'in_progress'|'reported'|'needs_attention',
+ *     reporting?: 'draft'|'not_reported'|'in_progress'|'reported'|'needs_attention'|'held',
  *     delivery?: 'nrs'|'deliver_to_buyer'|'sent_email'|'shared_link'|'none',
  *     credited?: 'true'|'false',
  *     refundOwed?: 'true'|'false',

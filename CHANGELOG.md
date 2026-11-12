@@ -6,6 +6,29 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
+## Unreleased
+
+In line with `@useyona/einvoice-js` 0.9.2: no new operation and no new method; new values and
+fields in the answers.
+
+### Added
+
+- Held invoices. While the organisation's connection to the tax authority is still in progress, an
+  invoice it issues is not refused: `$client->submissions->issue()` answers `reporting` `held` with
+  `notReportedReason` `awaiting_connection`, the invoice is sent to the buyer, and Yona reports it
+  automatically once the connection completes. The invoice's `reporting.state` is `held` until then;
+  `$client->invoices->list(['reporting' => 'held'])` lists them and `getSummary()` counts them in
+  `held`. `reporting.reason` gains `release_refused`, for one that could not be reported when the
+  connection completed: report it yourself with `$client->submissions->submit()`.
+- The tax connection's `state` can be `awaiting_authority_listing`: the business asked to connect
+  and the tax authority does not list it under any of its numbers yet. Yona asks again every 6 hours
+  and completes the connection by itself. The answer gains `listing` (`since`, `checkedAt`,
+  `nextCheckAt`, `answer`; `null` in every other state) and `connectWaits`. The same state appears on
+  `$client->taxConnection->listForSubOrganizations()`.
+- `InvoiceFinalisedData`, a phpstan shape of `WebhookEventType`: `invoice.finalised` can carry
+  `reporting` (`state`, `reason`), so a webhook handler can tell a held invoice from one being
+  reported.
+
 ## 0.2.1 (2026-11-11)
 
 In line with `@useyona/einvoice-js` 0.9.1: the 138 operations an API key may call (134 before), 13

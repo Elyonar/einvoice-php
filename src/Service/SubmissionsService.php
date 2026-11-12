@@ -41,7 +41,10 @@ final class SubmissionsService extends BaseService
 
     /**
      * Issues a draft: finalised and submitted when the organisation reports automatically (202),
-     * otherwise finalised and sent to the buyer (200, `notReportedReason`). Sends an `Idempotency-Key`.
+     * otherwise finalised and sent to the buyer (200, `notReportedReason`). While the organisation's
+     * connection to the tax authority is still in progress the answer can be `reporting: 'held'`
+     * (`notReportedReason: 'awaiting_connection'`): the invoice is issued and sent now, and reported
+     * automatically once the connection completes. Sends an `Idempotency-Key`.
      *
      * @return IssueInvoiceData
      */

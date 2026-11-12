@@ -12,10 +12,10 @@
 #   EINVOICE_JS_TOKEN=<token>          a GitHub token that may read einvoice-js while it is private (CI: a secret)
 set -eu
 
-# einvoice-js at the commit that becomes v0.9.1: snapshot of the 138 API-key operations
-# (sub-organisations: list, readiness, create, their tax connections; the page of a partner's
-# businesses), the generator with the PHP emitter, and the webhook vectors.
-EINVOICE_JS_REF="${EINVOICE_JS_REF:-d3bc2d4a583ca5c2e81ee2555e07f0a9a664d85e}"
+# einvoice-js at the commit that becomes v0.9.2: snapshot of the 138 API-key operations (held
+# invoices and the tax connection waiting to be listed by the tax authority), the generator with
+# the PHP emitter, and the webhook vectors.
+EINVOICE_JS_REF="${EINVOICE_JS_REF:-b6d3022fd04b4d8763eb02f32d21fe97b0579963}"
 EINVOICE_JS_REPO="${EINVOICE_JS_REPO:-https://github.com/Elyonar/einvoice-js.git}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CHECK=""
