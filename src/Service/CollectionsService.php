@@ -41,7 +41,7 @@ use Useyona\EInvoice\RequestOptions;
 final class CollectionsService extends BaseService
 {
     /**
-     * The organisation's collection accounts, newest first (`collection.account.read`).
+     * The organization's collection accounts, newest first (`collection.account.read`).
      *
      * @param ListCollectionAccountsQuery|null $query
      *
@@ -112,7 +112,7 @@ final class CollectionsService extends BaseService
     }
 
     /**
-     * The organisation's collection payments, newest first (`collection.payment.read`).
+     * The organization's collection payments, newest first (`collection.payment.read`).
      *
      * @param ListCollectionPaymentsQuery|null $query
      *
@@ -175,7 +175,7 @@ final class CollectionsService extends BaseService
     }
 
     /**
-     * The active settlement account, by the organisation's seller id (`collection.settlement_account.read`).
+     * The active settlement account, by the organization's seller id (`collection.settlement_account.read`).
      *
      * @return GetCollectionSettlementAccountData
      */

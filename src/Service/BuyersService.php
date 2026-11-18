@@ -8,7 +8,7 @@ use Useyona\EInvoice\Page;
 use Useyona\EInvoice\RequestOptions;
 
 /**
- * Buyers (`/i/v1/buyers`): the parties the organisation invoices.
+ * Buyers (`/i/v1/buyers`): the parties the organization invoices.
  *
  * @phpstan-import-type CreateBuyerBody from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type CreateBuyerData from \Useyona\EInvoice\Generated\Types

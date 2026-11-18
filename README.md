@@ -105,8 +105,8 @@ A refused request throws an exception chosen by status:
 |---|---|---|
 | 400, 422 | `ValidationException` | `VAL001`; on a buyer's address `VAL202` (state not on the list) and `VAL203` (LGA not on the list, or of another state) |
 | 401 | `AuthenticationException` | `AUTH041` (key revoked, expired or unknown), `AUTH004` (no credential) |
-| 402 | `InsufficientCreditsException` | `BIZ001`; `BIZ016` from `organization->createSubOrganization` (the plan allows no more organisations) |
-| 403 | `PermissionException` | `AUTH018` (route not for API keys), `AUTH019` (capability missing), `BIZ108` (other mode), `BIZ003` (a sandbox key creating a sub-organisation) |
+| 402 | `InsufficientCreditsException` | `BIZ001`; `BIZ016` from `organization->createSubOrganization` (the plan allows no more organizations) |
+| 403 | `PermissionException` | `AUTH018` (route not for API keys), `AUTH019` (capability missing), `BIZ108` (other mode), `BIZ003` (a sandbox key creating a sub-organization) |
 | 404 | `NotFoundException` | `RES001` |
 | 409 | `ConflictException` | `BIZ004`, `BIZ201`, `BIZ205`, `RES002` (it already exists) … |
 | 429 | `RateLimitException` | `SYS005` (`retryAfter` set) |
@@ -190,7 +190,7 @@ key with `YONA_API_KEY=sk_test_… make examples`.
 | [`sandbox-and-live.php`](examples/sandbox-and-live.php) | the mode from the key, `assert_mode`, and why going live changes only the key |
 | [`received-invoices.php`](examples/received-invoices.php) | received invoices: filters and walking every page with `EInvoice::paginate` |
 | [`states-and-lgas.php`](examples/states-and-lgas.php) | the state and LGA lists, an LGA picker filtered by state, a buyer saved with the codes, `VAL202` and `VAL203` |
-| [`sub-organisations.php`](examples/sub-organisations.php) | listing sub-organisations with a key, their readiness for live and their tax connections, creating one with a live key |
+| [`sub-organizations.php`](examples/sub-organizations.php) | listing sub-organizations with a key, their readiness for live and their tax connections, creating one with a live key |
 
 ## API reference
 
@@ -231,7 +231,7 @@ key may call is a method or a documented exclusion (`ExcludedOperations`).
 | `Webhooks` | `verifyWebhook`, `signWebhookPayload`, `computeWebhookSignature`, `parseSignatureHeader` |
 
 `$client->taxConnection->get(['identifier' => 'true'])` also says which number the tax authority
-holds for the organisation (its TIN or its 13-digit Tax ID): `einvoicingIdentifier`, or
+holds for the organization (its TIN or its 13-digit Tax ID): `einvoicingIdentifier`, or
 `identifierNextAction` when it holds neither. `['fresh' => 'true']` asks the authority again. Both
 are rationed; pass them only when you need that answer. `get($options)` still works.
 
@@ -246,7 +246,7 @@ of being refused. The `tax_connection.action_required` webhook is sent for this 
 
 ### Held invoices
 
-While an organisation's connection to the tax authority is still in progress, an invoice it issues
+While an organization's connection to the tax authority is still in progress, an invoice it issues
 is not refused: `$client->submissions->issue()` answers `reporting` `held` with `notReportedReason`
 `awaiting_connection`, the invoice is sent to the buyer, and Yona reports it automatically once the
 connection completes. Until then the invoice's `reporting.state` is `held`;
@@ -254,16 +254,16 @@ connection completes. Until then the invoice's `reporting.state` is `held`;
 counts them in `held`. If one cannot be reported when the connection completes, its
 `reporting.reason` is `release_refused`: report it yourself with `$client->submissions->submit()`.
 
-`$client->taxConnection->listForSubOrganizations(['ids' => […]])` is for a parent organisation: the
-state of each named sub-organisation's connection in the key's mode, and whether a submission would
+`$client->taxConnection->listForSubOrganizations(['ids' => […]])` is for a parent organization: the
+state of each named sub-organization's connection in the key's mode, and whether a submission would
 pass (`tax_connection.read`). `ids` is a list (or a comma-separated string) of at most 100 ids, each
-once. An id that is not one of the organisation's sub-organisations is left out of the answer.
+once. An id that is not one of the organization's sub-organizations is left out of the answer.
 
-### Sub-organisations
+### Sub-organizations
 
-An organisation that runs several businesses holds them as sub-organisations. No key preset includes
+An organization that runs several businesses holds them as sub-organizations. No key preset includes
 `organization.children.read` or `organization.children.create`: an Owner or Admin adds them to a key
-by name, under Sub-organisations in the dashboard's Create API Key dialog.
+by name, under Sub-organizations in the dashboard's Create API Key dialog.
 
 | Method | Route | Capability |
 |---|---|---|
@@ -276,16 +276,16 @@ by name, under Sub-organisations in the dashboard's Create API Key dialog.
   newest first, with the total in `pagination`; 100 a page at most. `ids` (a list, at most 100) keeps
   only the ones named. It works in sandbox and live, and with `EInvoice::paginate`. A list of ids
   reaches the API as one comma-separated value.
-- `listSubOrganizationsReadiness` answers the same page with each sub-organisation's checklist,
+- `listSubOrganizationsReadiness` answers the same page with each sub-organization's checklist,
   `liveStatus` and `nextStep`.
 - `createSubOrganization(['businessName' => …, 'email' => …, 'phoneNumber' => …, 'website' => …])`
   (the last two optional; the country is the parent's) needs a live key: a sandbox key is refused
-  with 403 `BIZ003`. The new organisation is recorded under the parent's longest-standing Owner and
+  with 403 `BIZ003`. The new organization is recorded under the parent's longest-standing Owner and
   is `pending_verification` until it completes its own onboarding. No `Idempotency-Key` is sent and
   the SDK does not retry it: a name is unique under its parent, so a repeat answers 409 `RES002`.
-  402 `BIZ016` when the plan allows no more organisations; 60 calls a minute for each key.
+  402 `BIZ016` when the plan allows no more organizations; 60 calls a minute for each key.
 - The parent's `organization.child.created` webhook carries `childOrganizationId`, `actorUserId`
-  and, only when an API key created the sub-organisation, `keyId` (the phpstan shape
+  and, only when an API key created the sub-organization, `keyId` (the phpstan shape
   `OrganizationChildCreatedData` of `Useyona\EInvoice\WebhookEventType`).
 
 ### States and LGAs
@@ -314,8 +314,8 @@ key's mode; elsewhere every call is 409 `BIZ120` (`ConflictException`). Its writ
 `Idempotency-Key` and are not retried.
 
 Account management (users, roles, API keys, purchases, webhook endpoint settings) is done in the
-Yona dashboard, not through the API key. So is managing a sub-organisation (its profile, members,
-onboarding and tax connection), signed in to that sub-organisation: a key lists sub-organisations
+Yona dashboard, not through the API key. So is managing a sub-organization (its profile, members,
+onboarding and tax connection), signed in to that sub-organization: a key lists sub-organizations
 and creates one. The payments service's bank-account and transfer reads join the SDK when payments
 launches in production.
 

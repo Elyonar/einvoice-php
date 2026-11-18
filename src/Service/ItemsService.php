@@ -107,7 +107,7 @@ final class ItemsService extends BaseService
     }
 
     /**
-     * The HS (`type=goods`) or service (`type=service`) codes already used on the organisation's
+     * The HS (`type=goods`) or service (`type=service`) codes already used on the organization's
      * invoices (`item.read`).
      *
      * @param ListUsedItemCodesQuery|null $query

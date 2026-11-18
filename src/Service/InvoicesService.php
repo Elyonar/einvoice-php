@@ -9,7 +9,7 @@ use Useyona\EInvoice\RequestOptions;
 
 /**
  * Invoices (`/i/v1/invoices`): drafts, their lifecycle, credit and debit notes, and the
- * organisation's invoice statistics. Submission to the tax authority is {@see SubmissionsService}.
+ * organization's invoice statistics. Submission to the tax authority is {@see SubmissionsService}.
  *
  * @phpstan-import-type CreateInvoiceBody from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type CreateInvoiceData from \Useyona\EInvoice\Generated\Types

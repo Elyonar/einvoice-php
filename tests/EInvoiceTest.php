@@ -39,7 +39,7 @@ final class EInvoiceTest extends TestCase
         new EInvoice(['apiKey' => Responses::TEST_KEY]); // @phpstan-ignore argument.type
     }
 
-    public function testHasNoUserRoleInvitationApiKeyOrOrganisationManagementServices(): void
+    public function testHasNoUserRoleInvitationApiKeyOrOrganizationManagementServices(): void
     {
         $yona = new EInvoice(['api_key' => Responses::TEST_KEY]);
         foreach (['users', 'roles', 'invitations', 'apiKeys', 'organizations', 'collection'] as $gone) {
@@ -144,7 +144,7 @@ final class EInvoiceTest extends TestCase
         self::assertSame('', $fake->requests[3]->getUri()->getQuery());
     }
 
-    public function testListsSubOrganisationsAndTheirReadinessAsPagesJoiningAListOfIds(): void
+    public function testListsSubOrganizationsAndTheirReadinessAsPagesJoiningAListOfIds(): void
     {
         $pagination = ['total' => 2, 'page' => 1, 'pageSize' => 100, 'totalPages' => 1, 'hasNext' => false, 'hasPrevious' => false];
         $fake = new FakeHttpClient([Responses::ok([['id' => 'c1'], ['id' => 'c2']], ['pagination' => $pagination, 'requestId' => 'r1'])]);

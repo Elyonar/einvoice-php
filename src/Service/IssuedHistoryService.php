@@ -9,7 +9,7 @@ use Useyona\EInvoice\Paginated;
 use Useyona\EInvoice\RequestOptions;
 
 /**
- * Issued history (`/i/v1/issued-history`): invoices the organisation issued that NRS holds, from before Yona.
+ * Issued history (`/i/v1/issued-history`): invoices the organization issued that NRS holds, from before Yona.
  *
  * @phpstan-import-type ListIssuedHistoryQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListIssuedHistoryData from \Useyona\EInvoice\Generated\Types

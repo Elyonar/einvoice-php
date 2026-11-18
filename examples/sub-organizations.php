@@ -1,7 +1,7 @@
 <?php
 
-// @recipe sub-organisations Sub-organisations
-// @summary For an organisation that runs several businesses: list its sub-organisations with an API key, see which are ready for live and connected to the tax authority, and create one with a live key.
+// @recipe sub-organizations Sub-organizations
+// @summary For an organization that runs several businesses: list its sub-organizations with an API key, see which are ready for live and connected to the tax authority, and create one with a live key.
 
 declare(strict_types=1);
 
@@ -13,17 +13,17 @@ use Useyona\EInvoice\Exception\NotFoundException;
 use Useyona\EInvoice\Exception\PermissionException;
 
 // @step client Create the client
-// @text Use a key of the parent organisation. No key preset includes the two sub-organisation permissions: an Owner or Admin ticks them under Sub-organisations when creating the key in the dashboard. Listing works in sandbox and live; creating needs a live key.
+// @text Use a key of the parent organization. No key preset includes the two sub-organization permissions: an Owner or Admin ticks them under Sub-organizations when creating the key in the dashboard. Listing works in sandbox and live; creating needs a live key.
 $yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);
 
-// @step list List the sub-organisations
+// @step list List the sub-organizations
 // @text Newest first, 100 a page at most, with the total in pagination. search keeps the ones whose name holds the text. The permission is organization.children.read.
 // @op listChildOrganizations
 try {
     $firstPage = $yona->organization->listSubOrganizations(['limit' => 100]);
 } catch (PermissionException|NotFoundException|ConflictException $err) {
-    // 403 AUTH019: the key does not hold organization.children.read. 404 RES001: sub-organisations are
-    // not switched on here. 409 BIZ014: this organisation is itself a sub-organisation.
+    // 403 AUTH019: the key does not hold organization.children.read. 404 RES001: sub-organizations are
+    // not switched on here. 409 BIZ014: this organization is itself a sub-organization.
     $nothingToList =
         ($err instanceof PermissionException && $err->errorCode === 'AUTH019')
         || ($err instanceof NotFoundException && $err->errorCode === 'RES001')
@@ -31,13 +31,13 @@ try {
     if (!$nothingToList) {
         throw $err;
     }
-    echo 'this key cannot list sub-organisations: ', $err->errorCode, "\n";
+    echo 'this key cannot list sub-organizations: ', $err->errorCode, "\n";
     exit(0);
 }
-echo $firstPage->pagination['total'], " sub-organisations\n";
+echo $firstPage->pagination['total'], " sub-organizations\n";
 
 // @step paginate Walk every page
-// @text An organisation can hold many sub-organisations. EInvoice::paginate fetches page after page for you.
+// @text An organization can hold many sub-organizations. EInvoice::paginate fetches page after page for you.
 // @op listChildOrganizations
 $all = [];
 foreach (EInvoice::paginate(fn (array $query) => $yona->organization->listSubOrganizations($query), ['limit' => 100]) as $sub) {
@@ -49,7 +49,7 @@ foreach (EInvoice::paginate(fn (array $query) => $yona->organization->listSubOrg
 echo 'read ', count($all), "\n";
 
 // @step readiness See which are ready for live
-// @text The same page, with each sub-organisation's checklist, live status and next step. ids keeps only the ones you name (100 at most), given as a list.
+// @text The same page, with each sub-organization's checklist, live status and next step. ids keeps only the ones you name (100 at most), given as a list.
 // @op listChildOrganizationsReadiness
 $ids = array_map(fn (array $sub): string => $sub['id'], $firstPage->data);
 $readiness = $yona->organization->listSubOrganizationsReadiness($ids !== [] ? ['ids' => $ids] : ['limit' => 100]);
@@ -58,7 +58,7 @@ foreach ($readiness->data as $sub) {
 }
 
 // @step tax-connection Check their tax connections
-// @text One item for each sub-organisation named: the state of its connection to the tax authority in the key's mode, and whether a submission would pass. The permission is tax_connection.read. An id that is not one of your sub-organisations is left out.
+// @text One item for each sub-organization named: the state of its connection to the tax authority in the key's mode, and whether a submission would pass. The permission is tax_connection.read. An id that is not one of your sub-organizations is left out.
 // @op listChildTaxConnections
 if ($ids !== []) {
     $connections = $yona->taxConnection->listForSubOrganizations(['ids' => $ids]);
@@ -67,8 +67,8 @@ if ($ids !== []) {
     }
 }
 
-// @step create Create a sub-organisation
-// @text With a live key that holds organization.children.create, this answers the new organisation; its status is pending_verification until it completes its own onboarding. A name is unique under its parent, so a repeat answers 409 RES002 and nothing is created twice. A sandbox key is refused, which is what this step shows in sandbox; with a live key it creates nothing here.
+// @step create Create a sub-organization
+// @text With a live key that holds organization.children.create, this answers the new organization; its status is pending_verification until it completes its own onboarding. A name is unique under its parent, so a repeat answers 409 RES002 and nothing is created twice. A sandbox key is refused, which is what this step shows in sandbox; with a live key it creates nothing here.
 // @op createOrganization
 if ($yona->mode() === 'sandbox') {
     try {

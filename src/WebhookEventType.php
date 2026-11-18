@@ -21,7 +21,7 @@ namespace Useyona\EInvoice;
  *     test?: true
  * }
  *
- * `data` of `organization.child.created`, sent to the parent when a sub-organisation is created.
+ * `data` of `organization.child.created`, sent to the parent when a sub-organization is created.
  * Ids only: read its name and status with `organization->listSubOrganizations(['ids' => […]])`.
  * `actorUserId` is the person it is recorded under: who created it, or the parent's Owner when an
  * API key did. `keyId` is present only when an API key created it: that key's id.
