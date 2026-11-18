@@ -8,7 +8,7 @@ use Useyona\EInvoice\Paginated;
 use Useyona\EInvoice\RequestOptions;
 
 /**
- * Received invoices (`/i/v1/inbound-invoices`): what other businesses issued to the organisation.
+ * Received invoices (`/i/v1/inbound-invoices`): what other businesses issued to the organization.
  *
  * @phpstan-import-type ListInboundInvoicesQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListInboundInvoicesData from \Useyona\EInvoice\Generated\Types

@@ -44,7 +44,7 @@ final class PartnerService extends BaseService
     }
 
     /**
-     * The partner tier the organisation may buy (`billing.subscription.read`); `null` when there is
+     * The partner tier the organization may buy (`billing.subscription.read`); `null` when there is
      * no offer.
      *
      * @return GetPartnerOfferData

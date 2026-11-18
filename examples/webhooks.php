@@ -93,7 +93,7 @@ if ($signed->getStatusCode() !== 200 || $tampered->getStatusCode() !== 400) {
 }
 
 // @step list-endpoints List your endpoints
-// @text The key reads the endpoints registered for its organisation and mode.
+// @text The key reads the endpoints registered for its organization and mode.
 // @op listWebhookEndpoints
 $yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);
 $endpoints = $yona->webhooks->endpoints->list();

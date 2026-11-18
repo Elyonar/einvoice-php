@@ -19,7 +19,7 @@ use Useyona\EInvoice\RequestOptions;
 final class BillingAccountsService extends BaseService
 {
     /**
-     * The organisation's billing account; an API key sees its own mode's balance (`billing.account.read`).
+     * The organization's billing account; an API key sees its own mode's balance (`billing.account.read`).
      *
      * @param GetBillingAccountQuery|null $query
      *

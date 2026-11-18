@@ -14,7 +14,7 @@ use Useyona\EInvoice\RequestOptions;
 final class PlansService extends BaseService
 {
     /**
-     * The plan recommended for the organisation from its usage (`billing.subscription.read`);
+     * The plan recommended for the organization from its usage (`billing.subscription.read`);
      * `null` when there is no recommendation.
      *
      * @return GetPlanRecommendationData

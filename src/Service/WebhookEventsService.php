@@ -19,7 +19,7 @@ use Useyona\EInvoice\RequestOptions;
 final class WebhookEventsService extends BaseService
 {
     /**
-     * Lists events of the key's mode plus organisation-scoped ones (`webhook.delivery.read`).
+     * Lists events of the key's mode plus organization-scoped ones (`webhook.delivery.read`).
      *
      * @param ListWebhookEventsQuery|null $query
      *

@@ -6,6 +6,30 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
+## Unreleased
+
+"Organization" is spelt with a z everywhere, the API's own values included (ruling R230, 18 Nov 2026).
+This is a breaking change for code that compares the two values below.
+
+### Changed
+
+- **Breaking.** Two values the API answers change: an invoice's and a submission's `issuedAs.kind`
+  (`InvoiceIssuedAsDto`), and the tax connection's `issuesAs` (`ConnectionViewDto`), answer
+  `organization` where they answered `organisation`. Code that compares either with the old value no
+  longer matches: compare with `'organization'`. The phpstan shapes in `src/Generated/Types.php` carry
+  the new value. Earlier versions pass the new value through unchanged (answers are arrays, never
+  validated), so a comparison there fails silently.
+- The recipe `sub-organisations` is now `sub-organizations`: the example
+  `examples/sub-organizations.php`, and its id and title in `guides/guides.json`.
+- Every doc comment, guide text, test name and README line spells the word with a z. No method,
+  parameter, key, route, permission, event name, webhook type or error code changes: they already used
+  the z.
+
+### Added
+
+- `tests/SpellingTest.php` fails when the s spelling of the word comes back, outside the files generated
+  from the API document and the history in this file.
+
 ## 0.2.2 (2026-11-12)
 
 In line with `@useyona/einvoice-js` 0.9.2: no new operation and no new method; new values and

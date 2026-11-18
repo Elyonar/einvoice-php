@@ -14,7 +14,7 @@ use Useyona\EInvoice\RequestOptions;
 final class InvoiceSettingsService extends BaseService
 {
     /**
-     * The organisation's invoice settings in the key's mode (`invoice.read`).
+     * The organization's invoice settings in the key's mode (`invoice.read`).
      *
      * @return GetInvoiceSettingsData
      */

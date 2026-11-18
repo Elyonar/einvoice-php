@@ -16,7 +16,7 @@ final class UsageService extends BaseService
 {
     /**
      * This month's invoice usage, the allowance and its thresholds (`billing.subscription.read`);
-     * `null` when the organisation has none.
+     * `null` when the organization has none.
      *
      * @return GetInvoiceUsageData
      */

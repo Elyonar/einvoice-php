@@ -80,7 +80,7 @@ final class SubscriptionsService extends BaseService
     }
 
     /**
-     * The deal offered to the organisation, if any (`billing.subscription.read`); `null` when there
+     * The deal offered to the organization, if any (`billing.subscription.read`); `null` when there
      * is none.
      *
      * @return GetDealOfferData
@@ -91,7 +91,7 @@ final class SubscriptionsService extends BaseService
     }
 
     /**
-     * What one more sub-organisation slot would cost; writes nothing (`billing.subscription.read`).
+     * What one more sub-organization slot would cost; writes nothing (`billing.subscription.read`).
      *
      * @return GetSubOrgSlotQuoteData
      */

@@ -14,10 +14,10 @@ final class ExcludedOperations
 {
     /** @var list<array{method: string, path: string, reason: string}> */
     public const OPERATIONS = [
-        ['method' => 'POST', 'path' => '/i/v1/sellers', 'reason' => 'Always 409 BIZ205: the organisation is its only seller.'],
-        ['method' => 'PATCH', 'path' => '/i/v1/sellers/{id}', 'reason' => 'Always 409 BIZ205: the seller is edited as the organisation profile in the dashboard.'],
-        ['method' => 'DELETE', 'path' => '/i/v1/sellers/{id}', 'reason' => 'Always 409 BIZ205: the organisation is its only seller.'],
-        ['method' => 'POST', 'path' => '/i/v1/sellers/{id}/verify-tax-number', 'reason' => 'Always 409 BIZ205: the TIN is verified in organisation settings.'],
+        ['method' => 'POST', 'path' => '/i/v1/sellers', 'reason' => 'Always 409 BIZ205: the organization is its only seller.'],
+        ['method' => 'PATCH', 'path' => '/i/v1/sellers/{id}', 'reason' => 'Always 409 BIZ205: the seller is edited as the organization profile in the dashboard.'],
+        ['method' => 'DELETE', 'path' => '/i/v1/sellers/{id}', 'reason' => 'Always 409 BIZ205: the organization is its only seller.'],
+        ['method' => 'POST', 'path' => '/i/v1/sellers/{id}/verify-tax-number', 'reason' => 'Always 409 BIZ205: the TIN is verified in organization settings.'],
         ['method' => 'GET', 'path' => '/i/v1/sellers/setup', 'reason' => 'Dashboard form metadata; the seller itself is sellers.get/list.'],
         ['method' => 'GET', 'path' => '/i/v1/buyers/setup', 'reason' => 'Dashboard form metadata; the code lists are reference.getResource.'],
         ['method' => 'GET', 'path' => '/i/v1/invoices/setup', 'reason' => 'Dashboard form metadata; the code lists are reference.getResource, the connection taxConnection.get.'],

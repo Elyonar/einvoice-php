@@ -8,7 +8,7 @@ use Useyona\EInvoice\Page;
 use Useyona\EInvoice\RequestOptions;
 
 /**
- * Sellers (`/i/v1/sellers`): read-only. The organisation is its only seller; creating, editing,
+ * Sellers (`/i/v1/sellers`): read-only. The organization is its only seller; creating, editing,
  * deleting or verifying a seller is always 409 `BIZ205`, so the SDK has no method for it.
  *
  * @phpstan-import-type ListSellersQuery from \Useyona\EInvoice\Generated\Types
@@ -21,7 +21,7 @@ use Useyona\EInvoice\RequestOptions;
 final class SellersService extends BaseService
 {
     /**
-     * The organisation's seller, as a list of one (`seller.read`).
+     * The organization's seller, as a list of one (`seller.read`).
      *
      * @param ListSellersQuery|null $query
      *
@@ -43,7 +43,7 @@ final class SellersService extends BaseService
     }
 
     /**
-     * The organisation's TIN status (`seller.read`).
+     * The organization's TIN status (`seller.read`).
      *
      * @return GetSellerVerificationStatusData
      */

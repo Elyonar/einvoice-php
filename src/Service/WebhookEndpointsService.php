@@ -18,7 +18,7 @@ use Useyona\EInvoice\RequestOptions;
 final class WebhookEndpointsService extends BaseService
 {
     /**
-     * The endpoints of the key's organisation and mode; never a secret (`webhook.endpoint.read`).
+     * The endpoints of the key's organization and mode; never a secret (`webhook.endpoint.read`).
      *
      * @return list<ListWebhookEndpointsItem>
      */

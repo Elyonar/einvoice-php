@@ -25,7 +25,7 @@ use Useyona\EInvoice\Service\WebhooksService;
 /**
  * The client of the Yona e-invoicing API. It covers what an API key may call: invoicing, buyers,
  * items, received invoices, billing reads, collections and webhooks. Users, invitations, roles, API
- * keys and organisation management are done in the dashboard.
+ * keys and organization management are done in the dashboard.
  *
  * The key decides the mode: `sk_test_…` is sandbox and `sk_live_…` is live, on the same host.
  *
@@ -55,17 +55,17 @@ final class EInvoice
     public readonly ReferenceService $reference;
     /** Buyers. */
     public readonly BuyersService $buyers;
-    /** The organisation's seller (read-only). */
+    /** The organization's seller (read-only). */
     public readonly SellersService $sellers;
-    /** Invoices other businesses issued to the organisation. */
+    /** Invoices other businesses issued to the organization. */
     public readonly InboundInvoicesService $inboundInvoices;
-    /** Invoices the organisation issued outside Yona that the tax authority holds. */
+    /** Invoices the organization issued outside Yona that the tax authority holds. */
     public readonly IssuedHistoryService $issuedHistory;
     /** Invoice settings (read-only). */
     public readonly InvoiceSettingsService $invoiceSettings;
-    /** The connection to the tax authority (read-only), and the state of the sub-organisations' connections. */
+    /** The connection to the tax authority (read-only), and the state of the sub-organizations' connections. */
     public readonly TaxConnectionService $taxConnection;
-    /** The key's organisation (read-only) and its sub-organisations (list, readiness, create). */
+    /** The key's organization (read-only) and its sub-organizations (list, readiness, create). */
     public readonly OrganizationService $organization;
     /** Billing reads: account, ledger, statements, subscriptions, payments, sandbox allowance, invoice usage, plans, partner. */
     public readonly BillingService $billing;
