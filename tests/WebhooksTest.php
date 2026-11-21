@@ -8,6 +8,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Useyona\EInvoice\Exception\WebhookException;
+use Useyona\EInvoice\WebhookEventType;
 use Useyona\EInvoice\Webhooks;
 
 /**
@@ -219,6 +220,37 @@ final class WebhooksTest extends TestCase
         $without = Webhooks::verifyWebhook($plain, ['yona-signature' => Webhooks::signWebhookPayload($plain, $secret, $t)], $secret, null, $t);
         self::assertArrayNotHasKey('reporting', $without['data']);
         self::assertSame(150000, $without['data']['payableMinor']);
+    }
+
+    public function testTheParentHearsEachManagedOnboardingStepOfABusiness(): void
+    {
+        $secret = self::str('secret');
+        $t = self::int('t');
+        $steps = [
+            WebhookEventType::ORGANIZATION_CHILD_TAX_ID_VERIFIED => 'organization.child.tax_id_verified',
+            WebhookEventType::ORGANIZATION_CHILD_ONBOARDING_SUBMITTED => 'organization.child.onboarding_submitted',
+            WebhookEventType::ORGANIZATION_CHILD_PHONE_VERIFIED => 'organization.child.phone_verified',
+            WebhookEventType::ORGANIZATION_CHILD_LIVE_ACCESS_APPROVED => 'organization.child.live_access_approved',
+            WebhookEventType::ORGANIZATION_CHILD_LIVE_ACCESS_REJECTED => 'organization.child.live_access_rejected',
+            WebhookEventType::ORGANIZATION_CHILD_TAX_CONNECTION_ACTION_REQUIRED => 'organization.child.tax_connection_action_required',
+            WebhookEventType::ORGANIZATION_CHILD_TAX_CONNECTION_CONNECTED => 'organization.child.tax_connection_connected',
+            WebhookEventType::ORGANIZATION_CHILD_TAX_CONNECTION_SUSPENDED => 'organization.child.tax_connection_suspended',
+        ];
+        self::assertCount(8, $steps);
+        foreach ($steps as $constant => $type) {
+            self::assertSame($type, $constant);
+        }
+        $base = ['id' => 'evt-2', 'version' => 1, 'createdAt' => '2026-11-21T10:00:00Z', 'mode' => 'live', 'organizationId' => 'org-1'];
+        // A step carries the business's id only.
+        $step = json_encode([...$base, 'type' => WebhookEventType::ORGANIZATION_CHILD_PHONE_VERIFIED, 'data' => ['childOrganizationId' => 'c9']], JSON_THROW_ON_ERROR);
+        $event = Webhooks::verifyWebhook($step, ['yona-signature' => Webhooks::signWebhookPayload($step, $secret, $t)], $secret, null, $t);
+        self::assertSame('organization.child.phone_verified', $event['type']);
+        self::assertSame(['childOrganizationId' => 'c9'], $event['data']);
+        // The tax connection waiting for someone says what has to be done, and by whom.
+        $waiting = ['childOrganizationId' => 'c9', 'state' => 'awaiting_authority_listing', 'nextAction' => 'enable_on_nrs', 'nextActionBy' => 'taxpayer'];
+        $action = json_encode([...$base, 'type' => WebhookEventType::ORGANIZATION_CHILD_TAX_CONNECTION_ACTION_REQUIRED, 'data' => $waiting], JSON_THROW_ON_ERROR);
+        $event = Webhooks::verifyWebhook($action, ['yona-signature' => Webhooks::signWebhookPayload($action, $secret, $t)], $secret, null, $t);
+        self::assertSame($waiting, $event['data']);
     }
 
     public function testUsesTheCurrentClockByDefault(): void

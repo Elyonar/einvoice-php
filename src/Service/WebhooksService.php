@@ -17,6 +17,8 @@ final class WebhooksService
     public readonly WebhookEventsService $events;
     /** The event catalogue. */
     public readonly WebhookEventTypesService $eventTypes;
+    /** Delivery health over a window. */
+    public readonly WebhookHealthService $health;
 
     public function __construct(HttpClient $http)
     {
@@ -24,5 +26,6 @@ final class WebhooksService
         $this->deliveries = new WebhookDeliveriesService($http);
         $this->events = new WebhookEventsService($http);
         $this->eventTypes = new WebhookEventTypesService($http);
+        $this->health = new WebhookHealthService($http);
     }
 }

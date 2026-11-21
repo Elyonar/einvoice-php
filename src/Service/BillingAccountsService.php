@@ -15,6 +15,7 @@ use Useyona\EInvoice\RequestOptions;
  * @phpstan-import-type GetBillingAccountStatsData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type CheckBillingAccountBalanceQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type CheckBillingAccountBalanceData from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetOrganizationCreditCostsData from \Useyona\EInvoice\Generated\Types
  */
 final class BillingAccountsService extends BaseService
 {
@@ -40,6 +41,16 @@ final class BillingAccountsService extends BaseService
     public function getStats(string $accountId = 'me', ?array $query = null, ?RequestOptions $options = null): array
     {
         return $this->call('GET', '/b/v1/billing-accounts/' . self::seg($accountId) . '/stats', ['query' => $query, 'options' => $options]);
+    }
+
+    /**
+     * What each action costs the organisation, in credits, under its own plan and terms (`billing.account.read`).
+     *
+     * @return GetOrganizationCreditCostsData
+     */
+    public function getCreditCosts(?RequestOptions $options = null): array
+    {
+        return $this->call('GET', '/b/v1/billing-accounts/me/credit-costs', ['options' => $options]);
     }
 
     /**

@@ -26,6 +26,10 @@ use Useyona\EInvoice\RequestOptions;
  * @phpstan-import-type QuoteCollectionFeeItem from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListCollectionPaymentsQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListCollectionPaymentsItem from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetCollectionSummaryQuery from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetCollectionSummaryData from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetCollectionDailySeriesQuery from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetCollectionDailySeriesData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListCollectionBuyerCreditsQuery from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListCollectionBuyerCreditsItem from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type ListCollectionExceptionsQuery from \Useyona\EInvoice\Generated\Types
@@ -121,6 +125,31 @@ final class CollectionsService extends BaseService
     public function listPayments(?array $query = null, ?RequestOptions $options = null): Page
     {
         return $this->page('GET', '/b/v1/collection/payments', ['query' => $query, 'options' => $options]);
+    }
+
+    /**
+     * Money received, fees, payouts and reconciliation between `from` and `to` (366 days at most),
+     * beside the window before it (`collection.payment.read`).
+     *
+     * @param GetCollectionSummaryQuery $query
+     *
+     * @return GetCollectionSummaryData
+     */
+    public function getSummary(array $query, ?RequestOptions $options = null): array
+    {
+        return $this->call('GET', '/b/v1/collection/summary', ['query' => $query, 'options' => $options]);
+    }
+
+    /**
+     * Money received for each UTC day between `from` and `to`, 366 days at most (`collection.payment.read`).
+     *
+     * @param GetCollectionDailySeriesQuery $query
+     *
+     * @return GetCollectionDailySeriesData
+     */
+    public function getDailySeries(array $query, ?RequestOptions $options = null): array
+    {
+        return $this->call('GET', '/b/v1/collection/summary/daily', ['query' => $query, 'options' => $options]);
     }
 
     /**

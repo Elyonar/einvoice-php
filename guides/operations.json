@@ -2,7 +2,7 @@
   "language": "php",
   "package": "useyona/einvoice-php",
   "sdkVersion": "0.2.2",
-  "generatedFrom": "5652030",
+  "generatedFrom": "fd46ac9",
   "setup": "<?php\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);",
   "literal": {
     "string": "single",
@@ -53,6 +53,11 @@
       "module": "buyers",
       "method": "create",
       "template": "$result = $yona->buyers->create({{body}});"
+    },
+    "createChildOrganizationSetupLink": {
+      "module": "organization",
+      "method": "createSubOrganizationSetupLink",
+      "template": "$result = $yona->organization->createSubOrganizationSetupLink({{path:childId}}, {{body}});"
     },
     "createCollectionAccount": {
       "module": "collections",
@@ -119,6 +124,16 @@
       "method": "getActive",
       "template": "$result = $yona->billing->subscriptions->getActive();"
     },
+    "getAddOnQuote": {
+      "module": "billing.subscriptions",
+      "method": "quoteAddOn",
+      "template": "$result = $yona->billing->subscriptions->quoteAddOn({{path:kind}}, {{query}});"
+    },
+    "getAddOns": {
+      "module": "billing.subscriptions",
+      "method": "listAddOns",
+      "template": "$result = $yona->billing->subscriptions->listAddOns();"
+    },
     "getBillingAccount": {
       "module": "billing.accounts",
       "method": "getMine",
@@ -154,15 +169,30 @@
       "method": "getAccountStatus",
       "template": "$result = $yona->collections->getAccountStatus({{path:id}});"
     },
+    "getCollectionDailySeries": {
+      "module": "collections",
+      "method": "getDailySeries",
+      "template": "$result = $yona->collections->getDailySeries({{query}});"
+    },
     "getCollectionSettlementAccount": {
       "module": "collections",
       "method": "getSettlementAccount",
       "template": "$result = $yona->collections->getSettlementAccount({{path:sellerId}});"
     },
+    "getCollectionSummary": {
+      "module": "collections",
+      "method": "getSummary",
+      "template": "$result = $yona->collections->getSummary({{query}});"
+    },
     "getDealOffer": {
       "module": "billing.subscriptions",
       "method": "getDealOffer",
       "template": "$result = $yona->billing->subscriptions->getDealOffer();"
+    },
+    "getGroupTerms": {
+      "module": "organization",
+      "method": "getGroupTerms",
+      "template": "$result = $yona->organization->getGroupTerms();"
     },
     "getInboundHistoryRun": {
       "module": "inboundInvoices",
@@ -243,6 +273,11 @@
       "module": "organization",
       "method": "get",
       "template": "$result = $yona->organization->get({{path:orgId}});"
+    },
+    "getOrganizationCreditCosts": {
+      "module": "billing.accounts",
+      "method": "getCreditCosts",
+      "template": "$result = $yona->billing->accounts->getCreditCosts();"
     },
     "getOrganizationReadiness": {
       "module": "organization",
@@ -343,6 +378,16 @@
       "module": "webhooks.events",
       "method": "get",
       "template": "$result = $yona->webhooks->events->get({{path:id}});"
+    },
+    "getWebhookHealth": {
+      "module": "webhooks.health",
+      "method": "get",
+      "template": "$result = $yona->webhooks->health->get({{query}});"
+    },
+    "getWebhookHealthDaily": {
+      "module": "webhooks.health",
+      "method": "getDaily",
+      "template": "$result = $yona->webhooks->health->getDaily({{query}});"
     },
     "issueCreditNote": {
       "module": "invoices",
@@ -574,6 +619,11 @@
       "method": "revise",
       "template": "$result = $yona->invoices->revise({{path:id}});"
     },
+    "revokeChildOrganizationSetupLink": {
+      "module": "organization",
+      "method": "revokeSubOrganizationSetupLink",
+      "template": "$result = $yona->organization->revokeSubOrganizationSetupLink({{path:childId}});"
+    },
     "revokeInvoiceShareLink": {
       "module": "shareLinks",
       "method": "revoke",
@@ -593,6 +643,16 @@
       "module": "output",
       "method": "send",
       "template": "$result = $yona->output->send({{path:id}}, {{body}});"
+    },
+    "setChildOrganizationContact": {
+      "module": "organization",
+      "method": "setSubOrganizationContact",
+      "template": "$result = $yona->organization->setSubOrganizationContact({{path:childId}}, {{body}});"
+    },
+    "submitChildOrganizationOnboarding": {
+      "module": "organization",
+      "method": "submitSubOrganization",
+      "template": "$result = $yona->organization->submitSubOrganization({{path:childId}});"
     },
     "submitInvoice": {
       "module": "submissions",
@@ -633,6 +693,11 @@
       "module": "buyers",
       "method": "verifyTaxNumber",
       "template": "$result = $yona->buyers->verifyTaxNumber({{path:id}});"
+    },
+    "verifyChildOrganizationTaxId": {
+      "module": "organization",
+      "method": "verifySubOrganizationTaxId",
+      "template": "$result = $yona->organization->verifySubOrganizationTaxId({{path:childId}}, {{body}});"
     }
   }
 }
