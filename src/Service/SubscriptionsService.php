@@ -20,6 +20,9 @@ use Useyona\EInvoice\RequestOptions;
  * @phpstan-import-type PreviewSubscriptionPlanChangeData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type GetDealOfferData from \Useyona\EInvoice\Generated\Types
  * @phpstan-import-type GetSubOrgSlotQuoteData from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetAddOnsData from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetAddOnQuoteQuery from \Useyona\EInvoice\Generated\Types
+ * @phpstan-import-type GetAddOnQuoteData from \Useyona\EInvoice\Generated\Types
  */
 final class SubscriptionsService extends BaseService
 {
@@ -98,5 +101,28 @@ final class SubscriptionsService extends BaseService
     public function quoteSubOrgSlot(?RequestOptions $options = null): array
     {
         return $this->call('GET', '/b/v1/sub-org-slots/quote', ['options' => $options]);
+    }
+
+    /**
+     * The slot add-ons the organisation's plan offers, and how many it holds (`billing.subscription.read`).
+     *
+     * @return GetAddOnsData
+     */
+    public function listAddOns(?RequestOptions $options = null): array
+    {
+        return $this->call('GET', '/b/v1/subscription/add-ons', ['options' => $options]);
+    }
+
+    /**
+     * What `slots` more of one add-on would cost now (`billing.subscription.read`). Buying is done
+     * in the Yona app.
+     *
+     * @param GetAddOnQuoteQuery $query
+     *
+     * @return GetAddOnQuoteData
+     */
+    public function quoteAddOn(string $kind, array $query, ?RequestOptions $options = null): array
+    {
+        return $this->call('GET', '/b/v1/subscription/add-ons/' . self::seg($kind) . '/quote', ['query' => $query, 'options' => $options]);
     }
 }

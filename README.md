@@ -175,7 +175,8 @@ $event = Webhooks::verifyWebhook($request->getBody(), $request, $secret);
 `verifyWebhook` checks the `Yona-Signature` header over the raw body and returns the event. Always
 pass the raw body, and deduplicate on `$event['id']`. `Webhooks::signWebhookPayload` signs a payload
 the way Yona does, so you can test your handler locally. Endpoints are registered in the dashboard;
-the SDK can list and test them and inspect deliveries.
+the SDK can list and test them, inspect deliveries and read how deliveries have been arriving
+(`$client->webhooks->health`).
 
 ## Guides
 
@@ -196,7 +197,7 @@ key with `YONA_API_KEY=sk_test_… make examples`.
 
 Every method takes an optional trailing `?RequestOptions $options`. Request and query arrays have
 shapes named after the operation (`CreateInvoiceBody`, `ListInvoicesQuery`) in
-`Useyona\EInvoice\Generated\Types`. 126 methods in 27 modules; a test proves every operation an API
+`Useyona\EInvoice\Generated\Types`. 139 methods in 28 modules; a test proves every operation an API
 key may call is a method or a documented exclusion (`ExcludedOperations`).
 
 | Module | Methods |
@@ -213,21 +214,22 @@ key may call is a method or a documented exclusion (`ExcludedOperations`).
 | `$client->issuedHistory` | `list`, `get`, `downloadPdf` |
 | `$client->invoiceSettings` | `get` |
 | `$client->taxConnection` | `get`, `listForSubOrganizations` |
-| `$client->organization` | `get`, `getReadiness`, `listSubOrganizations`, `listSubOrganizationsReadiness`, `createSubOrganization` |
-| `$client->billing->accounts` | `getMine`, `getStats`, `checkBalance` |
+| `$client->organization` | `get`, `getReadiness`, `listSubOrganizations`, `listSubOrganizationsReadiness`, `createSubOrganization`, `getGroupTerms`, `verifySubOrganizationTaxId`, `setSubOrganizationContact`, `createSubOrganizationSetupLink`, `revokeSubOrganizationSetupLink`, `submitSubOrganization` |
+| `$client->billing->accounts` | `getMine`, `getStats`, `getCreditCosts`, `checkBalance` |
 | `$client->billing->payments` | `list`, `get` |
 | `$client->billing->sandbox` | `listTransactions`, `getUsage` |
 | `$client->billing->statements` | `get` |
-| `$client->billing->subscriptions` | `getActive`, `list`, `get`, `listRenewals`, `previewPlanChange`, `getDealOffer`, `quoteSubOrgSlot` |
+| `$client->billing->subscriptions` | `getActive`, `list`, `get`, `listRenewals`, `previewPlanChange`, `getDealOffer`, `quoteSubOrgSlot`, `listAddOns`, `quoteAddOn` |
 | `$client->billing->transactions` | `list`, `get`, `getUsageAnalytics`, `getUsageByCostCode` |
 | `$client->billing->usage` | `getInvoices`, `quoteOverage` |
 | `$client->billing->plans` | `getRecommendation` |
 | `$client->billing->partner` | `get`, `getOffer`, `quoteSeat`, `quoteBasket`, `quotePlanChange` |
-| `$client->collections` | `listAccounts`, `createAccount`, `getAccount`, `getAccountStatus`, `deactivateAccount`, `quoteFee`, `listPayments`, `listBuyerCredits`, `listExceptions`, `resolveException`, `listSettlementAccounts`, `getSettlementAccount`, `listBanks` |
+| `$client->collections` | `listAccounts`, `createAccount`, `getAccount`, `getAccountStatus`, `deactivateAccount`, `quoteFee`, `listPayments`, `getSummary`, `getDailySeries`, `listBuyerCredits`, `listExceptions`, `resolveException`, `listSettlementAccounts`, `getSettlementAccount`, `listBanks` |
 | `$client->webhooks->endpoints` | `list`, `get`, `test` |
 | `$client->webhooks->deliveries` | `list`, `get`, `redeliver` |
 | `$client->webhooks->events` | `list`, `get`, `redeliver` |
 | `$client->webhooks->eventTypes` | `list` |
+| `$client->webhooks->health` | `get`, `getDaily` |
 | `Webhooks` | `verifyWebhook`, `signWebhookPayload`, `computeWebhookSignature`, `parseSignatureHeader` |
 
 `$client->taxConnection->get(['identifier' => 'true'])` also says which number the tax authority
@@ -270,6 +272,12 @@ by name, under Sub-organisations in the dashboard's Create API Key dialog.
 | `organization->listSubOrganizations` | `GET /a/v1/organizations/me/children` | `organization.children.read` |
 | `organization->listSubOrganizationsReadiness` | `GET /a/v1/organizations/me/children/readiness` | `organization.children.read` |
 | `organization->createSubOrganization` | `POST /a/v1/organizations` | `organization.children.create` |
+| `organization->getGroupTerms` | `GET /a/v1/organizations/me/group-terms` | `organization.children.read` |
+| `organization->verifySubOrganizationTaxId` | `POST /a/v1/organizations/me/children/{childId}/onboarding/tax-id` | `organization.children.onboard` |
+| `organization->setSubOrganizationContact` | `PUT /a/v1/organizations/me/children/{childId}/onboarding/contact` | `organization.children.onboard` |
+| `organization->createSubOrganizationSetupLink` | `POST /a/v1/organizations/me/children/{childId}/setup-link` | `organization.children.onboard` |
+| `organization->revokeSubOrganizationSetupLink` | `DELETE /a/v1/organizations/me/children/{childId}/setup-link` | `organization.children.onboard` |
+| `organization->submitSubOrganization` | `POST /a/v1/organizations/me/children/{childId}/onboarding/submit` | `organization.children.onboard` |
 | `taxConnection->listForSubOrganizations` | `GET /i/v1/tax-connection/children?ids=` | `tax_connection.read` |
 
 - `listSubOrganizations(['page' => …, 'limit' => …, 'search' => …, 'ids' => […]])` answers a page,
@@ -278,15 +286,60 @@ by name, under Sub-organisations in the dashboard's Create API Key dialog.
   reaches the API as one comma-separated value.
 - `listSubOrganizationsReadiness` answers the same page with each sub-organisation's checklist,
   `liveStatus` and `nextStep`.
-- `createSubOrganization(['businessName' => …, 'email' => …, 'phoneNumber' => …, 'website' => …])`
-  (the last two optional; the country is the parent's) needs a live key: a sandbox key is refused
-  with 403 `BIZ003`. The new organisation is recorded under the parent's longest-standing Owner and
-  is `pending_verification` until it completes its own onboarding. No `Idempotency-Key` is sent and
-  the SDK does not retry it: a name is unique under its parent, so a repeat answers 409 `RES002`.
-  402 `BIZ016` when the plan allows no more organisations; 60 calls a minute for each key.
+- `createSubOrganization(['businessName' => …, 'email' => …, 'phoneNumber' => …, 'website' => …,
+  'externalReference' => …])` (the last three optional; the country is the parent's) needs a live
+  key: a sandbox key is refused with 403 `BIZ003`. The new organisation is recorded under the
+  parent's longest-standing Owner and is `pending_verification` until it completes its own
+  onboarding. An `Idempotency-Key` is sent (yours from `RequestOptions`, or one the SDK makes), so
+  a retried call answers the organisation already made, with `replayed: true`; the same key with
+  other details is 409 `BIZ107`. `externalReference` is your own id for the business (1 to 64 of
+  letters, digits, `.`, `_`, `:`, `-`): the same reference with the same name also answers the
+  business already made. A name is unique under its parent (409 `RES002`). 402 `BIZ016` when the
+  plan allows no more organisations; 60 calls a minute for each key.
 - The parent's `organization.child.created` webhook carries `childOrganizationId`, `actorUserId`
   and, only when an API key created the sub-organisation, `keyId` (the phpstan shape
   `OrganizationChildCreatedData` of `Useyona\EInvoice\WebhookEventType`).
+
+### Onboarding your businesses (managed onboarding)
+
+A live key that also holds `organization.children.onboard` (in no preset; an Owner or Admin adds
+it, after accepting the managed onboarding terms in the Yona app) takes each business it creates
+from created to waiting for approval. `$client->organization->getGroupTerms()` says whether the
+organisation has accepted the managed onboarding terms (`accepted`, true only for the current
+version).
+
+```php
+$business = $client->organization->createSubOrganization([
+    'businessName' => 'Bola Stores Limited',
+    'email' => 'accounts@bolastores.example',
+    'externalReference' => 'crm-0042', // your own id: the same reference again answers the same business
+]);
+$client->organization->verifySubOrganizationTaxId($business['id'], ['businessName' => 'Bola Stores Limited', 'taxNo' => '1234567890123']);
+$client->organization->setSubOrganizationContact($business['id'], ['phoneNumber' => '+2348031234567']);
+$link = $client->organization->createSubOrganizationSetupLink($business['id'], ['expiresInDays' => 14]);
+// $link['url'] is answered once: send it to the business owner now.
+$client->organization->submitSubOrganization($business['id']);
+```
+
+- The business owner opens the link, proves the business phone with a code sent by SMS and, once
+  Yona has approved the business, gives the consent that lets Yona report its e-invoices.
+  `submitSubOrganization` can be called before the owner has done anything: the business goes to
+  review by itself when the phone is verified.
+- Every call can be sent again. `createSubOrganization` and `createSubOrganizationSetupLink` send
+  an `Idempotency-Key`; a repeated Tax ID check, contact or submit answers where the business
+  stands, with `replayed: true` where nothing was done. A retried `createSubOrganizationSetupLink`
+  answers the same link with `url` `null`: the link is shown once. A link works for 14 days unless
+  `expiresInDays` says otherwise (30 at most), a new link stops the one before it, and
+  `revokeSubOrganizationSetupLink` withdraws the working one at once.
+- A business the key may not onboard (not yours, one its own people set up, one Yona has approved)
+  answers 404 `RES001`. After approval the key can only make a new setup link.
+- The parent hears each step on its webhooks: `organization.child.tax_id_verified`,
+  `.onboarding_submitted`, `.phone_verified`, `.live_access_approved`, `.live_access_rejected`
+  (`OrganizationChildStepData`), and the business's tax connection:
+  `.tax_connection_action_required` (`OrganizationChildTaxConnectionActionRequiredData`),
+  `.tax_connection_connected` and `.tax_connection_suspended`
+  (`OrganizationChildTaxConnectionSuspendedData`). The shapes are phpstan types of
+  `Useyona\EInvoice\WebhookEventType`, which also holds a constant for each type.
 
 ### States and LGAs
 
@@ -307,6 +360,30 @@ state). Both are optional, and free text for other countries.
 for (`businesses`, oldest first; `businessesPage` carries `page`, `limit` and `total`; 100 a page,
 the most, when `limit` is left out). `get()` and `get($options)` still work.
 
+The reads the API has opened to API keys since 0.2.2:
+
+| Method | Route | Capability |
+|---|---|---|
+| `billing->accounts->getCreditCosts` | `GET /b/v1/billing-accounts/me/credit-costs` | `billing.account.read` |
+| `billing->subscriptions->listAddOns` | `GET /b/v1/subscription/add-ons` | `billing.subscription.read` |
+| `billing->subscriptions->quoteAddOn` | `GET /b/v1/subscription/add-ons/{kind}/quote` | `billing.subscription.read` |
+| `collections->getSummary` | `GET /b/v1/collection/summary` | `collection.payment.read` |
+| `collections->getDailySeries` | `GET /b/v1/collection/summary/daily` | `collection.payment.read` |
+| `webhooks->health->get` | `GET /n/v1/webhook-health` | `webhook.delivery.read` |
+| `webhooks->health->getDaily` | `GET /n/v1/webhook-health/daily` | `webhook.delivery.read` |
+
+- `getCreditCosts()` is what each action costs the organisation, in credits, under its own plan and
+  terms.
+- `listAddOns()` is the slot add-ons the organisation's plan offers and how many it holds;
+  `quoteAddOn($kind, ['slots' => 5])` is what that many more would cost now. Buying is done in the
+  Yona app.
+- `collections->getSummary(['from' => …, 'to' => …])` is the money received, fees, payouts and
+  reconciliation in the window (366 days at most), beside the window before it; `getDailySeries`
+  is the money received for each UTC day of it.
+- `webhooks->health->get(['from' => …, 'to' => …])` counts the deliveries in the window (31 days at
+  most) for each endpoint and event type; `getDaily` counts them for each UTC day, and `endpointId`
+  keeps one endpoint.
+
 `billing->plans->getRecommendation()`, `billing->usage->getInvoices()`,
 `billing->partner->getOffer()` and `billing->subscriptions->getDealOffer()` return `null` when there
 is nothing to show. `$client->collections` answers only where collections are switched on for the
@@ -315,9 +392,9 @@ key's mode; elsewhere every call is 409 `BIZ120` (`ConflictException`). Its writ
 
 Account management (users, roles, API keys, purchases, webhook endpoint settings) is done in the
 Yona dashboard, not through the API key. So is managing a sub-organisation (its profile, members,
-onboarding and tax connection), signed in to that sub-organisation: a key lists sub-organisations
-and creates one. The payments service's bank-account and transfer reads join the SDK when payments
-launches in production.
+onboarding and tax connection), signed in to that sub-organisation: a key lists sub-organisations,
+creates one and, with managed onboarding, takes it as far as Yona's review. The payments service's
+bank-account and transfer reads join the SDK when payments launches in production.
 
 ## Configuration
 

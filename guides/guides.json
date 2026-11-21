@@ -1,6 +1,6 @@
 {
   "sdkVersion": "0.2.2",
-  "generatedFrom": "5652030",
+  "generatedFrom": "fd46ac9",
   "install": "composer require useyona/einvoice-php",
   "quickStart": "<?php\n\ndeclare(strict_types=1);\n\nrequire 'vendor/autoload.php';\n\nuse Useyona\\EInvoice\\EInvoice;\n\n$yona = new EInvoice(['api_key' => (string) getenv('YONA_API_KEY')]);\necho $yona->mode(), \"\\n\"; // 'sandbox' for sk_test_, 'live' for sk_live_\n\n$readiness = $yona->organization->getReadiness();\necho json_encode($readiness, JSON_PRETTY_PRINT), \"\\n\";",
   "recipes": [
@@ -22,7 +22,7 @@
           "title": "Create a buyer",
           "text": "A buyer is the party you invoice. A B2B buyer carries its tax id (TIN), which the tax authority checks on submission. A buyer can never carry your own organisation's TIN (the authority refuses SAME_PARTY_TIN); the sandbox accepts any well-formed TIN. A TIN is unique per organisation: on 409 RES002, reuse the buyer you already have.",
           "sdk": "$taxId = '12345678-0001';\n$findOrCreateBuyer = function () use ($yona, $ref, $taxId): array {\n    try {\n        return $yona->buyers->create([\n            'name' => \"Acme Nigeria Ltd {$ref}\",\n            'partyType' => 'company',\n            'taxId' => $taxId,\n            'email' => \"accounts.{$ref}@example.com\",\n            'address' => ['line1' => '1 Marina', 'city' => 'Lagos', 'country' => 'NG'],\n        ]);\n    } catch (ConflictException $err) {\n        if ($err->errorCode !== 'RES002') {\n            throw $err;\n        }\n        $found = $yona->buyers->list(['search' => $taxId, 'limit' => 1]);\n        if ($found->data === []) {\n            throw $err;\n        }\n\n        return $found->data[0];\n    }\n};\n$buyer = $findOrCreateBuyer();\necho 'buyer ', $buyer['id'], \"\\n\";",
-          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"string\"\n}'",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"Adebayo Trading\"\n}'",
           "operationId": "createBuyer"
         },
         {
@@ -385,7 +385,7 @@
           "title": "Save a buyer with the codes",
           "text": "Send the state and LGA codes in the buyer's address. The exact names are accepted too and are stored as the codes; the answer always carries the codes. Both fields are optional.",
           "sdk": "$buyer = $yona->buyers->create([\n    'name' => 'Acme Trading ' . bin2hex(random_bytes(4)),\n    'partyType' => 'individual',\n    'address' => ['line1' => '12 Allen Avenue', 'city' => 'Ikeja', 'state' => $lagos['code'], 'lga' => $ikeja['code'], 'country' => 'NG'],\n]);\n$saved = $buyer['address'] ?? [];\nif (($saved['state'] ?? null) !== $lagos['code'] || ($saved['lga'] ?? null) !== $ikeja['code']) {\n    throw new RuntimeException('the buyer did not keep the codes');\n}\necho 'buyer ', $buyer['id'], ' ', $saved['state'], ' ', $saved['lga'], \"\\n\";",
-          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"string\"\n}'",
+          "curl": "curl -X POST \"https://gp.useyona.com/i/v1/buyers\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"Adebayo Trading\"\n}'",
           "operationId": "createBuyer"
         },
         {
@@ -456,7 +456,7 @@
           "title": "Create a sub-organisation",
           "text": "With a live key that holds organization.children.create, this answers the new organisation; its status is pending_verification until it completes its own onboarding. A name is unique under its parent, so a repeat answers 409 RES002 and nothing is created twice. A sandbox key is refused, which is what this step shows in sandbox; with a live key it creates nothing here.",
           "sdk": "if ($yona->mode() === 'sandbox') {\n    try {\n        $created = $yona->organization->createSubOrganization(['businessName' => 'Acme Retail Ltd', 'email' => 'accounts@acme.example']);\n        throw new RuntimeException(\"a sandbox key created {$created['id']}\");\n    } catch (PermissionException $err) {\n        echo 'refused in sandbox: ', $err->errorCode, \"\\n\";\n    }\n}",
-          "curl": "curl -X POST \"https://gp.useyona.com/a/v1/organizations\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"businessName\": \"Acme Retail Ltd\",\n  \"email\": \"ada@example.com\"\n}'",
+          "curl": "curl -X POST \"https://gp.useyona.com/a/v1/organizations\" \\\n  -H \"Authorization: Bearer $YONA_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"businessName\": \"Acme Retail Ltd\",\n  \"email\": \"ada@example.com\"\n}'",
           "operationId": "createOrganization"
         }
       ]

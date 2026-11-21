@@ -65,13 +65,13 @@ final class EInvoice
     public readonly InvoiceSettingsService $invoiceSettings;
     /** The connection to the tax authority (read-only), and the state of the sub-organisations' connections. */
     public readonly TaxConnectionService $taxConnection;
-    /** The key's organisation (read-only) and its sub-organisations (list, readiness, create). */
+    /** The key's organisation (read-only) and its sub-organisations (list, readiness, create, managed onboarding). */
     public readonly OrganizationService $organization;
     /** Billing reads: account, ledger, statements, subscriptions, payments, sandbox allowance, invoice usage, plans, partner. */
     public readonly BillingService $billing;
     /** Collections: accounts that collect invoice payments, the payments, buyer credit, exceptions, settlement. */
     public readonly CollectionsService $collections;
-    /** Webhook endpoints (read, test), deliveries, events and the event catalogue. */
+    /** Webhook endpoints (read, test), deliveries, events, the event catalogue and delivery health. */
     public readonly WebhooksService $webhooks;
     /** The transport, for advanced use. */
     public readonly HttpClient $http;

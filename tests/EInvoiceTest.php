@@ -8,7 +8,6 @@ use PHPUnit\Framework\TestCase;
 use Useyona\EInvoice\BinaryResponse;
 use Useyona\EInvoice\EInvoice;
 use Useyona\EInvoice\Exception\ConfigException;
-use Useyona\EInvoice\Exception\ServerException;
 use Useyona\EInvoice\ExcludedOperations;
 use Useyona\EInvoice\Http\HttpClient;
 use Useyona\EInvoice\Page;
@@ -182,26 +181,129 @@ final class EInvoiceTest extends TestCase
         self::assertSame('ids=a%2Cb', $fake->last()->getUri()->getQuery());
     }
 
-    public function testCreateSubOrganizationPostsTheBodyWithNoIdempotencyKeyAndSoNoRetry(): void
+    public function testCreateSubOrganizationPostsTheBodyWithAnIdempotencyKeySoARetryIsSafe(): void
     {
         $created = ['id' => 'c9', 'type' => 'secondary', 'status' => 'pending_verification'];
-        $fake = new FakeHttpClient([Responses::json(201, ['meta' => ['statusCode' => 201, 'success' => true, 'requestId' => 'req-ok'], 'data' => $created])]);
+        $answer = Responses::json(201, ['meta' => ['statusCode' => 201, 'success' => true, 'requestId' => 'req-ok'], 'data' => $created]);
+        $fake = new FakeHttpClient([$answer]);
         $yona = Responses::client($fake, ['api_key' => Responses::LIVE_KEY]);
-        $body = ['businessName' => 'Acme Retail Ltd', 'email' => 'accounts@acme.example'];
+        $body = ['businessName' => 'Acme Retail Ltd', 'email' => 'accounts@acme.example', 'externalReference' => 'crm-0042'];
         self::assertSame($created, $yona->organization->createSubOrganization($body));
         self::assertSame('POST', $fake->last()->getMethod());
         self::assertSame('/a/v1/organizations', $fake->last()->getUri()->getPath());
         self::assertSame($body, json_decode((string) $fake->last()->getBody(), true));
-        self::assertFalse($fake->last()->hasHeader('Idempotency-Key'));
+        // The route reads an Idempotency-Key since managed onboarding: the same key answers the business already made.
+        self::assertMatchesRegularExpression(HttpClient::IDEMPOTENCY_KEY_PATTERN, $fake->last()->getHeaderLine('Idempotency-Key'));
+        $yona->organization->createSubOrganization($body, new RequestOptions(idempotencyKey: 'create-crm-0042'));
+        self::assertSame('create-crm-0042', $fake->last()->getHeaderLine('Idempotency-Key'));
 
-        // Not retried: a 503 is thrown after one request.
-        $failing = new FakeHttpClient([Responses::refusal(503, 'SYS001')]);
-        try {
-            Responses::client($failing, ['api_key' => Responses::LIVE_KEY])->organization->createSubOrganization($body);
-            self::fail('expected a ServerException');
-        } catch (ServerException $err) {
-            self::assertSame(1, $failing->calls());
+        // Retried: a 503 is followed by a second request that carries the same key.
+        $failing = new FakeHttpClient([Responses::refusal(503, 'SYS001'), $answer]);
+        self::assertSame($created, Responses::client($failing, ['api_key' => Responses::LIVE_KEY])->organization->createSubOrganization($body));
+        self::assertSame(2, $failing->calls());
+        self::assertSame($failing->requests[0]->getHeaderLine('Idempotency-Key'), $failing->requests[1]->getHeaderLine('Idempotency-Key'));
+    }
+
+    public function testManagedOnboardingTheFiveStepsAParentsKeyTakesForABusinessEachOnItsOwnRoute(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok([])]);
+        $yona = Responses::client($fake, ['api_key' => Responses::LIVE_KEY]);
+        $id = 'c9';
+        $base = "/a/v1/organizations/me/children/{$id}";
+
+        $yona->organization->getGroupTerms();
+        self::assertSame('GET', $fake->requests[0]->getMethod());
+        self::assertSame('/a/v1/organizations/me/group-terms', $fake->requests[0]->getUri()->getPath());
+
+        $taxId = ['businessName' => 'Bola Stores Limited', 'taxNo' => '1234567890123'];
+        $yona->organization->verifySubOrganizationTaxId($id, $taxId);
+        self::assertSame('POST', $fake->requests[1]->getMethod());
+        self::assertSame("{$base}/onboarding/tax-id", $fake->requests[1]->getUri()->getPath());
+        self::assertSame($taxId, json_decode((string) $fake->requests[1]->getBody(), true));
+        self::assertFalse($fake->requests[1]->hasHeader('Idempotency-Key'));
+
+        $contact = ['phoneNumber' => '+2348031234567', 'contactEmail' => 'accounts@bolastores.example'];
+        $yona->organization->setSubOrganizationContact($id, $contact);
+        self::assertSame('PUT', $fake->requests[2]->getMethod());
+        self::assertSame("{$base}/onboarding/contact", $fake->requests[2]->getUri()->getPath());
+        self::assertSame($contact, json_decode((string) $fake->requests[2]->getBody(), true));
+
+        $yona->organization->createSubOrganizationSetupLink($id, ['expiresInDays' => 14]);
+        self::assertSame('POST', $fake->requests[3]->getMethod());
+        self::assertSame("{$base}/setup-link", $fake->requests[3]->getUri()->getPath());
+        self::assertSame(['expiresInDays' => 14], json_decode((string) $fake->requests[3]->getBody(), true));
+        self::assertMatchesRegularExpression(HttpClient::IDEMPOTENCY_KEY_PATTERN, $fake->requests[3]->getHeaderLine('Idempotency-Key'));
+        // Without a life the body is empty, and the link takes the default.
+        $yona->organization->createSubOrganizationSetupLink($id);
+        self::assertSame('POST', $fake->requests[4]->getMethod());
+        self::assertSame("{$base}/setup-link", $fake->requests[4]->getUri()->getPath());
+        self::assertSame('{}', (string) $fake->requests[4]->getBody());
+        self::assertTrue($fake->requests[4]->hasHeader('Idempotency-Key'));
+        // The caller's own key is the one sent.
+        $yona->organization->createSubOrganizationSetupLink($id, [], new RequestOptions(idempotencyKey: 'link-crm-0042'));
+        self::assertSame('link-crm-0042', $fake->requests[5]->getHeaderLine('Idempotency-Key'));
+
+        $yona->organization->submitSubOrganization($id);
+        self::assertSame('POST', $fake->requests[6]->getMethod());
+        self::assertSame("{$base}/onboarding/submit", $fake->requests[6]->getUri()->getPath());
+        self::assertSame('', (string) $fake->requests[6]->getBody());
+        self::assertFalse($fake->requests[6]->hasHeader('Idempotency-Key'));
+
+        $yona->organization->revokeSubOrganizationSetupLink($id);
+        self::assertSame('DELETE', $fake->requests[7]->getMethod());
+        self::assertSame("{$base}/setup-link", $fake->requests[7]->getUri()->getPath());
+    }
+
+    public function testABusinessIdIsOnePathSegmentHoweverItIsSpelt(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok([])]);
+        $organization = Responses::client($fake, ['api_key' => Responses::LIVE_KEY])->organization;
+        $organization->submitSubOrganization('../../me');
+        $organization->verifySubOrganizationTaxId('a/b', ['businessName' => 'Bola Stores Limited', 'taxNo' => '1234567890123']);
+        $organization->setSubOrganizationContact('a/b', ['phoneNumber' => '+2348031234567']);
+        $organization->createSubOrganizationSetupLink('a/b');
+        $organization->revokeSubOrganizationSetupLink('a/b');
+        self::assertSame([
+            'POST /a/v1/organizations/me/children/..%2F..%2Fme/onboarding/submit',
+            'POST /a/v1/organizations/me/children/a%2Fb/onboarding/tax-id',
+            'PUT /a/v1/organizations/me/children/a%2Fb/onboarding/contact',
+            'POST /a/v1/organizations/me/children/a%2Fb/setup-link',
+            'DELETE /a/v1/organizations/me/children/a%2Fb/setup-link',
+        ], array_map(fn ($req): string => $req->getMethod() . ' ' . $req->getUri()->getPath(), $fake->requests));
+    }
+
+    public function testTheReadsOpenedToApiKeysSince022CreditCostsAddOnsCollectionAndWebhookHealth(): void
+    {
+        $fake = new FakeHttpClient([Responses::ok([])]);
+        $yona = Responses::client($fake);
+        $window = ['from' => '2026-11-01T00:00:00.000Z', 'to' => '2026-11-20T00:00:00.000Z'];
+        $yona->billing->accounts->getCreditCosts();
+        $yona->billing->subscriptions->listAddOns();
+        $yona->billing->subscriptions->quoteAddOn('sub_org_slot', ['slots' => 5]);
+        $yona->collections->getSummary($window);
+        $yona->collections->getDailySeries($window);
+        $yona->webhooks->health->get($window);
+        $yona->webhooks->health->getDaily([...$window, 'endpointId' => 'e1']);
+        self::assertSame([
+            'GET /b/v1/billing-accounts/me/credit-costs',
+            'GET /b/v1/subscription/add-ons',
+            'GET /b/v1/subscription/add-ons/sub_org_slot/quote',
+            'GET /b/v1/collection/summary',
+            'GET /b/v1/collection/summary/daily',
+            'GET /n/v1/webhook-health',
+            'GET /n/v1/webhook-health/daily',
+        ], array_map(fn ($req): string => $req->getMethod() . ' ' . $req->getUri()->getPath(), $fake->requests));
+        self::assertSame('slots=5', $fake->requests[2]->getUri()->getQuery());
+        parse_str($fake->requests[3]->getUri()->getQuery(), $summaryQuery);
+        self::assertSame($window, $summaryQuery);
+        parse_str($fake->requests[6]->getUri()->getQuery(), $dailyQuery);
+        self::assertSame([...$window, 'endpointId' => 'e1'], $dailyQuery);
+        foreach ($fake->requests as $req) {
+            self::assertFalse($req->hasHeader('Idempotency-Key'));
         }
+        // The add-on's kind is one path segment.
+        $yona->billing->subscriptions->quoteAddOn('a/b', ['slots' => 1]);
+        self::assertSame('/b/v1/subscription/add-ons/a%2Fb/quote', $fake->last()->getUri()->getPath());
     }
 
     public function testBillingPartnerGetKeepsTheOptionsOnlyCallOf02AndTakesThePageOfBusinesses(): void

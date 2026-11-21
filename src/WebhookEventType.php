@@ -32,6 +32,37 @@ namespace Useyona\EInvoice;
  *     keyId?: string
  * }
  *
+ * `data` of the parent's managed onboarding steps: `organization.child.tax_id_verified`,
+ * `.onboarding_submitted`, `.phone_verified`, `.live_access_approved`, `.live_access_rejected` and
+ * `.tax_connection_connected`. The business's id only: never its phone, its name or a reviewer's
+ * message. Read where it stands with `organization->listSubOrganizationsReadiness(['ids' => […]])`.
+ * `onboarding_submitted` and `phone_verified` can arrive in either order.
+ *
+ * @phpstan-type OrganizationChildStepData array{
+ *     childOrganizationId: string
+ * }
+ *
+ * `data` of `organization.child.tax_connection_action_required`: after the owner's consent, the
+ * business's connection to the tax authority waits for someone to act. `state` is the connection's
+ * state, for example `awaiting_authority_listing` (a new state may arrive); `nextAction` is what has
+ * to be done, for example `enable_on_nrs`; `nextActionBy` is who has to do it: the business at the
+ * tax authority (`taxpayer`), or the organisation in Yona (`tenant`).
+ *
+ * @phpstan-type OrganizationChildTaxConnectionActionRequiredData array{
+ *     childOrganizationId: string,
+ *     state: string,
+ *     nextAction: string,
+ *     nextActionBy: string
+ * }
+ *
+ * `data` of `organization.child.tax_connection_suspended`: the business withdrew Yona's permission
+ * at the tax authority. `nextAction` is what restores the connection.
+ *
+ * @phpstan-type OrganizationChildTaxConnectionSuspendedData array{
+ *     childOrganizationId: string,
+ *     nextAction: string
+ * }
+ *
  * `data` of `invoice.finalised`, sent when an invoice is finalised (issued). `payableMinor` is what is
  * payable, in minor units of `currency` (ISO 4217). `reporting`, when present, says how the invoice
  * stands with the tax authority at that moment, with the same values as the invoice's own
@@ -103,6 +134,14 @@ final class WebhookEventType
     public const ORGANIZATION_LIVE_ACCESS_REVOKED = 'organization.live_access.revoked';
     public const ORGANIZATION_CLOSED = 'organization.closed';
     public const ORGANIZATION_CHILD_CREATED = 'organization.child.created';
+    public const ORGANIZATION_CHILD_TAX_ID_VERIFIED = 'organization.child.tax_id_verified';
+    public const ORGANIZATION_CHILD_ONBOARDING_SUBMITTED = 'organization.child.onboarding_submitted';
+    public const ORGANIZATION_CHILD_PHONE_VERIFIED = 'organization.child.phone_verified';
+    public const ORGANIZATION_CHILD_LIVE_ACCESS_APPROVED = 'organization.child.live_access_approved';
+    public const ORGANIZATION_CHILD_LIVE_ACCESS_REJECTED = 'organization.child.live_access_rejected';
+    public const ORGANIZATION_CHILD_TAX_CONNECTION_ACTION_REQUIRED = 'organization.child.tax_connection_action_required';
+    public const ORGANIZATION_CHILD_TAX_CONNECTION_CONNECTED = 'organization.child.tax_connection_connected';
+    public const ORGANIZATION_CHILD_TAX_CONNECTION_SUSPENDED = 'organization.child.tax_connection_suspended';
     public const MEMBER_JOINED = 'member.joined';
     public const MEMBER_ROLE_CHANGED = 'member.role_changed';
     public const MEMBER_SUSPENDED = 'member.suspended';

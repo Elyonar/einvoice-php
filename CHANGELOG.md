@@ -6,6 +6,49 @@ All notable changes to this project will be documented in this file. The format 
 The Yona SDKs are versioned independently of each other and of `@useyona/einvoice-js`; the
 einvoice-js commit (or tag) pinned in `scripts/sync.sh` records which JS release this one tracks.
 
+## Unreleased
+
+In line with `@useyona/einvoice-js` 0.9.3: the 151 operations an API key may call (138 before), 13
+of them excluded with a reason; 139 methods in 28 modules.
+
+### Added
+
+- Managed onboarding: a parent organisation's live key takes each business it creates from created
+  to waiting for approval. `$client->organization->verifySubOrganizationTaxId()`,
+  `setSubOrganizationContact()`, `createSubOrganizationSetupLink()`,
+  `revokeSubOrganizationSetupLink()` and `submitSubOrganization()`, with the new capability
+  `organization.children.onboard` (in no preset). `$client->organization->getGroupTerms()` says
+  whether the organisation has accepted the managed onboarding terms that allow it.
+- The setup link's `url` is answered once; a retried `createSubOrganizationSetupLink()` answers the
+  same link without it.
+- Eight webhook types the parent hears, as constants of `WebhookEventType`:
+  `organization.child.tax_id_verified`, `.onboarding_submitted`, `.phone_verified`,
+  `.live_access_approved`, `.live_access_rejected` (the phpstan shape `OrganizationChildStepData`),
+  and `.tax_connection_action_required`
+  (`OrganizationChildTaxConnectionActionRequiredData`), `.tax_connection_connected` and
+  `.tax_connection_suspended` (`OrganizationChildTaxConnectionSuspendedData`).
+- Reads the API has opened to API keys: `$client->billing->accounts->getCreditCosts()`,
+  `$client->billing->subscriptions->listAddOns()` and `quoteAddOn()`,
+  `$client->collections->getSummary()` and `getDailySeries()`, and the new module
+  `$client->webhooks->health` with `get()` and `getDaily()`.
+
+### Changed
+
+- `$client->organization->createSubOrganization()` now sends an `Idempotency-Key` (yours from
+  `RequestOptions`, or one the SDK makes), so a retried call answers the business already made, and
+  it is retried like every keyed write. It takes `externalReference`, your own id for the business.
+- The models follow the API. No method is removed or renamed.
+- One generated shape is renamed, as the API names it: `PlanEntitlementsDto` is now
+  `AccountEntitlementsDto`, with the same fields. Code that imports the old name with
+  `@phpstan-import-type` must import the new one.
+- Four fields the API can now answer as `null` are typed so; check before using them:
+  `capPercent`, `pricePercent` and `periodEnd` in the answer of
+  `$client->billing->usage->quoteOverage()` (`OverageQuoteDto`), and `percentBp` in the answer of
+  `$client->billing->subscriptions->quoteSubOrgSlot()` (`SubOrgSlotQuoteDto`).
+- A payment's `kind` gains `metered_topup`, `metered_statement` and `add_on_slots`, in
+  `$client->billing->payments`, in a statement's payments and in the `kind` filter of
+  `$client->billing->payments->list()`. Treat a value you do not know as another kind of payment.
+
 ## 0.2.2 (2026-11-12)
 
 In line with `@useyona/einvoice-js` 0.9.2: no new operation and no new method; new values and
